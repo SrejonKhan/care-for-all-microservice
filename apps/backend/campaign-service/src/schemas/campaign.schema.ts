@@ -23,7 +23,7 @@ export const CreateCampaignRequestSchema = z.object({
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
   category: z.string().max(100).optional(),
-  imageUrl: z.string().url().max(500).optional(),
+  imageUrl: z.union([z.string().url().max(500), z.literal('')]).optional(),
 });
 
 export const UpdateCampaignRequestSchema = z.object({
@@ -33,7 +33,7 @@ export const UpdateCampaignRequestSchema = z.object({
   status: CampaignStatusEnum.optional(),
   endDate: z.string().datetime().optional(),
   category: z.string().max(100).optional(),
-  imageUrl: z.string().url().max(500).optional(),
+  imageUrl: z.union([z.string().url().max(500), z.literal('')]).optional(),
 });
 
 export const ListCampaignsQuerySchema = z.object({

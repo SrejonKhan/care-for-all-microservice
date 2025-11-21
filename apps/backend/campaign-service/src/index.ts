@@ -43,17 +43,19 @@ if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
 
 const app = new OpenAPIHono();
 
-// CORS middleware (if needed for development)
+// CORS middleware - Allow frontend access
 app.use('*', async (c, next) => {
-  if (config.NODE_ENV === 'development') {
-    c.header('Access-Control-Allow-Origin', '*');
-    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    if (c.req.method === 'OPTIONS') {
-      return new Response('', { status: 204 });
-    }
+  // Set CORS headers for development
+  c.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  c.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (c.req.method === 'OPTIONS') {
+    return c.text('', 204);
   }
+  
   await next();
 });
 
