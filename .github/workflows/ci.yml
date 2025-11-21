@@ -59,34 +59,35 @@ jobs:
       - name: Set matrix output
         id: set-matrix
         run: |
-          # Build JSON array of changed services
+          # Build JSON array of changed services (compact format)
           SERVICES="[]"
 
           if [ "${{ steps.filter.outputs.gateway }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["gateway"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["gateway"]')
           fi
           if [ "${{ steps.filter.outputs.auth-service }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["auth-service"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["auth-service"]')
           fi
           if [ "${{ steps.filter.outputs.campaign-service }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["campaign-service"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["campaign-service"]')
           fi
           if [ "${{ steps.filter.outputs.donation-service }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["donation-service"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["donation-service"]')
           fi
           if [ "${{ steps.filter.outputs.payment-service }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["payment-service"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["payment-service"]')
           fi
           if [ "${{ steps.filter.outputs.totals-service }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["totals-service"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["totals-service"]')
           fi
           if [ "${{ steps.filter.outputs.chat-service }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["chat-service"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["chat-service"]')
           fi
           if [ "${{ steps.filter.outputs.admin-frontend }}" == "true" ]; then
-            SERVICES=$(echo $SERVICES | jq '. + ["admin-frontend"]')
+            SERVICES=$(echo $SERVICES | jq -c '. + ["admin-frontend"]')
           fi
 
+          # Output as compact single-line JSON
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
 
           # Check if any service changed
