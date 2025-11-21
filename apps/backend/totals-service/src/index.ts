@@ -3,8 +3,10 @@ import { apiReference } from '@scalar/hono-api-reference';
 import { loadConfig } from '@care-for-all/shared-config';
 import { createLogger } from '@care-for-all/shared-logger';
 import { initTracing } from '@care-for-all/shared-otel';
+import { connectDatabase, checkDatabaseHealth } from './config/database';
 import { healthRoute } from './routes/health';
-import { getCampaignTotalsRoute } from './routes/totals';
+import { getCampaignTotalsRoute, listCampaignTotalsRoute } from './routes/totals';
+import { TotalsService } from './services/totals.service';
 
 // ============================================================================
 // CONFIGURATION
@@ -13,8 +15,8 @@ import { getCampaignTotalsRoute } from './routes/totals';
 const config = loadConfig({
   serviceName: 'totals-service',
   required: {
-    database: false, // TODO: Enable when DB is set up
-    rabbitmq: false, // TODO: Enable when RabbitMQ is configured
+    database: true,
+    rabbitmq: false,
     otel: false,
   },
 });
@@ -41,41 +43,115 @@ if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
 const app = new OpenAPIHono();
 
 // Health check
-app.openapi(healthRoute, (c) => {
+app.openapi(healthRoute, async (c) => {
+  const dbHealth = await checkDatabaseHealth();
+
   return c.json({
-    status: 'healthy',
+    status: dbHealth.healthy ? 'healthy' : 'degraded',
     service: 'totals-service',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    database: dbHealth,
   });
 });
 
-// Totals routes
+// Get campaign totals (fast read - no recalculation)
 app.openapi(getCampaignTotalsRoute, async (c) => {
-  const { campaignId } = c.req.valid('param');
-  
-  logger.info('Getting campaign totals', { campaignId });
+  try {
+    const { campaignId } = c.req.valid('param');
 
-  // TODO: Query materialized view from database
-  // This view should be updated via RabbitMQ events:
-  // - PaymentCapturedEvent -> increment total
-  // - PaymentRefundedEvent -> decrement total
+    logger.info('Getting campaign totals', { campaignId });
 
-  return c.json({
-    success: true,
-    data: {
-      campaignId,
-      totalAmount: 0,
-      totalPledges: 0,
-      totalDonors: 0,
-      lastUpdated: new Date().toISOString(),
-    },
-  });
+    const totals = await TotalsService.getCampaignTotals(campaignId);
+
+    if (!totals) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'TOTALS_NOT_FOUND',
+            message: `Campaign totals not found for campaign: ${campaignId}`,
+          },
+        },
+        404 as any
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        campaignId: totals.campaignId,
+        totalAmount: totals.totalAmount,
+        totalPledges: totals.totalPledges,
+        totalDonors: totals.totalDonors,
+        lastUpdated: totals.lastUpdated.toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('Error getting campaign totals', {
+      error: (error as Error).message,
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'TOTALS_RETRIEVAL_ERROR',
+          message: (error as Error).message,
+        },
+      },
+      500 as any
+    );
+  }
 });
 
-// TODO: Add RabbitMQ consumer to listen for payment events
-// setupEventConsumer();
+// List all campaign totals
+app.openapi(listCampaignTotalsRoute, async (c) => {
+  try {
+    const query = c.req.valid('query');
+
+    logger.info('Listing campaign totals', { query });
+
+    const { totals, total } = await TotalsService.listCampaignTotals({
+      limit: query.limit,
+      offset: query.offset,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        totals: totals.map((t) => ({
+          campaignId: t.campaignId,
+          totalAmount: t.totalAmount,
+          totalPledges: t.totalPledges,
+          totalDonors: t.totalDonors,
+          lastUpdated: t.lastUpdated.toISOString(),
+        })),
+        total,
+        limit: query.limit || 20,
+        offset: query.offset || 0,
+      },
+    });
+  } catch (error) {
+    logger.error('Error listing campaign totals', {
+      error: (error as Error).message,
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'TOTALS_LIST_ERROR',
+          message: (error as Error).message,
+        },
+      },
+      500 as any
+    );
+  }
+});
 
 // API Documentation
 app.get(
@@ -94,33 +170,70 @@ app.doc('/openapi', {
   info: {
     title: 'Totals Service API',
     version: '1.0.0',
-    description: 'Materialized read model for campaign totals',
+    description: 'Materialized read model for campaign totals - fast reads without recalculation',
   },
+  servers: [
+    {
+      url: 'http://localhost:3005',
+      description: 'Development server',
+    },
+  ],
 });
 
 // ============================================================================
-// EVENT CONSUMERS
+// ERROR HANDLING
 // ============================================================================
 
-async function setupEventConsumer() {
-  // TODO: Initialize RabbitMQ connection
-  // TODO: Subscribe to payment.captured events
-  // TODO: Subscribe to payment.refunded events
-  // TODO: Update totals in database when events are received
-  
-  logger.info('Event consumer setup (TODO)');
+app.onError((err, c) => {
+  logger.error('Unhandled error', {
+    error: err.message,
+    stack: err.stack,
+  });
+
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred',
+      },
+    },
+    500 as any
+  );
+});
+
+// ============================================================================
+// STARTUP
+// ============================================================================
+
+async function startServer() {
+  try {
+    logger.info('Starting totals-service...');
+
+    // Connect to database
+    await connectDatabase();
+    logger.info('Database connected');
+
+    const port = config.PORT;
+    logger.info(`Totals-service running on port ${port}`);
+    logger.info(`API Documentation: http://localhost:${port}/docs`);
+  } catch (error) {
+    logger.error('Failed to start server', {
+      error: (error as Error).message,
+    });
+    process.exit(1);
+  }
 }
 
-// ============================================================================
-// START SERVER
-// ============================================================================
+// Start server
+startServer();
 
-const port = config.PORT;
-
-logger.info(`Starting totals-service on port ${port}`);
+// ============================================================================
+// EXPORT
+// ============================================================================
 
 export default {
-  port,
+  port: config.PORT,
   fetch: app.fetch,
 };
 
