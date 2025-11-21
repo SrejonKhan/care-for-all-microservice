@@ -30,7 +30,7 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - AUTH_SERVICE_URL=http://host.docker.internal:4000
-      - CAMPAIGN_SERVICE_URL=http://campaign-service:3000
+      - CAMPAIGN_SERVICE_URL=http://host.docker.internal:4001
       - DONATION_SERVICE_URL=http://donation-service:3000
       - PAYMENT_SERVICE_URL=http://payment-service:3000
       - TOTALS_SERVICE_URL=http://totals-service:3000
@@ -215,6 +215,7 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
     ports:
+      - "5672:5672"    # AMQP port for local services  
       - "15672:15672"  # Management UI
     environment:
       - RABBITMQ_DEFAULT_USER=guest

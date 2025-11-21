@@ -237,6 +237,30 @@ const deleteCampaignRoute = createRoute({
 
 export const campaignRoutes = new OpenAPIHono();
 
+// Simple test endpoint for debugging
+campaignRoutes.post('/test', authMiddleware, async (c) => {
+  try {
+    const user = getUser(c);
+    return c.json({
+      success: true,
+      message: 'Auth middleware works',
+      user: user ? {
+        userId: user.userId,
+        email: user.email,
+        role: user.role
+      } : null
+    });
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: {
+        code: 'TEST_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }, 500);
+  }
+});
+
 // List campaigns (public)
 campaignRoutes.openapi(listCampaignsRoute, async (c) => {
   try {
@@ -318,13 +342,19 @@ campaignRoutes.openapi(getCampaignRoute, async (c) => {
   }
 });
 
-// Create campaign (authenticated)
+// Create campaign (authenticated) - with detailed error logging
 campaignRoutes.openapi(createCampaignRoute, authMiddleware, async (c) => {
   try {
+    logger.info('Campaign creation endpoint hit');
+    
     const body = c.req.valid('json');
+    logger.info('Request body parsed', { body });
+    
     const user = getUser(c);
+    logger.info('User extracted from context', { user });
 
     if (!user) {
+      logger.warn('No user in context');
       return c.json(
         {
           success: false,
@@ -337,49 +367,62 @@ campaignRoutes.openapi(createCampaignRoute, authMiddleware, async (c) => {
       );
     }
 
-    // Create campaign
-    const campaign = await CampaignService.createCampaign(
-      {
-        ...body,
+    logger.info('About to create campaign', {
+      userId: user.userId,
+      title: body.title,
+      goalAmount: body.goalAmount,
+    });
+
+    // Create campaign with detailed logging
+    try {
+      const campaignData = {
+        title: body.title,
+        description: body.description,
+        goalAmount: body.goalAmount,
         startDate: new Date(body.startDate),
         endDate: new Date(body.endDate),
-      },
-      user.userId
-    );
+        category: body.category || undefined,
+        imageUrl: body.imageUrl || undefined,
+      };
+      
+      logger.info('Campaign data prepared', { campaignData });
+      
+      const campaign = await CampaignService.createCampaign(campaignData, user.userId);
+      
+      logger.info('Campaign created successfully', {
+        campaignId: campaign._id.toString(),
+        ownerId: user.userId,
+      });
 
-    // Elevate user to CAMPAIGN_OWNER role if not already
-    if (user.role === 'USER') {
-      const authHeader = c.req.header('Authorization');
-      const token = authHeader?.split(' ')[1];
-      if (token) {
-        await AuthClientService.elevateUserToCampaignOwner(user.userId, token);
-      }
+      return c.json(
+        {
+          success: true,
+          data: {
+            id: campaign._id.toString(),
+            title: campaign.title,
+            description: campaign.description,
+            goalAmount: campaign.goalAmount,
+            currentAmount: campaign.currentAmount,
+            status: campaign.status,
+            ownerId: campaign.ownerId,
+            startDate: campaign.startDate,
+            endDate: campaign.endDate,
+            category: campaign.category,
+            imageUrl: campaign.imageUrl,
+            createdAt: campaign.createdAt,
+            updatedAt: campaign.updatedAt,
+          },
+        },
+        201
+      );
+    } catch (serviceError) {
+      logger.error('CampaignService.createCampaign failed', {
+        error: serviceError,
+        message: serviceError instanceof Error ? serviceError.message : 'Unknown service error',
+        stack: serviceError instanceof Error ? serviceError.stack : undefined,
+      });
+      throw serviceError;
     }
-
-    // Publish campaign.created event
-    await EventService.publishEvent(ROUTING_KEYS.CAMPAIGN_CREATED, {
-      campaignId: campaign._id.toString(),
-      title: campaign.title,
-      description: campaign.description,
-      goalAmount: campaign.goalAmount,
-      ownerId: campaign.ownerId,
-      startDate: campaign.startDate.toISOString(),
-      endDate: campaign.endDate.toISOString(),
-      category: campaign.category,
-    });
-
-    logger.info('Campaign created', {
-      campaignId: campaign._id.toString(),
-      ownerId: user.userId,
-    });
-
-    return c.json(
-      {
-        success: true,
-        data: campaign.toJSON(),
-      },
-      201
-    );
   } catch (error: any) {
     if (error.code === 'INVALID_DATE_RANGE') {
       return c.json(
