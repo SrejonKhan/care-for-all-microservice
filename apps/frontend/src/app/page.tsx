@@ -10,7 +10,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/auth");
+      router.push("/public-campaigns"); // Show campaigns to guests
     } else if (!isLoading && isAuthenticated) {
       // Redirect to dashboard for better organization
       router.push("/dashboard");

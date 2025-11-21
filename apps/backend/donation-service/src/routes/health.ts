@@ -1,5 +1,6 @@
-import { createRoute } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
+import { checkDatabaseHealth } from '../config/database';
 
 const HealthCheckResponseSchema = z.object({
   status: z.enum(['healthy', 'unhealthy', 'degraded']),
@@ -7,6 +8,7 @@ const HealthCheckResponseSchema = z.object({
   version: z.string(),
   timestamp: z.string(),
   uptime: z.number(),
+  database: z.string(),
 });
 
 export const healthRoute = createRoute({
@@ -24,5 +26,20 @@ export const healthRoute = createRoute({
       },
     },
   },
+});
+
+export const healthRouter = new OpenAPIHono();
+
+healthRouter.openapi(healthRoute, async (c) => {
+  const dbHealth = await checkDatabaseHealth();
+
+  return c.json({
+    status: dbHealth ? 'healthy' : 'degraded',
+    service: 'donation-service',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: dbHealth ? 'connected' : 'disconnected',
+  });
 });
 

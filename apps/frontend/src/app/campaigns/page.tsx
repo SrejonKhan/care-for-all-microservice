@@ -5,12 +5,17 @@ import { useEffect, useState } from 'react';
 import { campaignService, Campaign } from '../../lib/campaign';
 
 export default function CampaignsPage() {
-  const { user, isGuest, hasAdminAccess } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Derived values from user state
+  const isGuest = !isAuthenticated || user?.isGuest;
+  const hasAdminAccess = user?.role === 'ADMIN';
 
   useEffect(() => {
+    // Load campaigns for all users (authenticated and guests)
     loadCampaigns();
   }, []);
 
@@ -19,21 +24,18 @@ export default function CampaignsPage() {
     setError(null);
     
     try {
+      // Load all campaigns (not just ACTIVE) so guests and users can see all
       const response = await campaignService.listCampaigns({
-        status: 'ACTIVE',
         pageSize: 20
       });
 
       if (response.success && response.data) {
         setCampaigns(response.data.campaigns);
       } else {
-        // Show mock data while API is being debugged
-        console.warn('API failed, showing mock data:', response.error?.message);
-        setMockCampaigns();
+        setError(response.error?.message || 'Failed to load campaigns');
       }
     } catch (err) {
-      console.warn('Network error, showing mock data:', err);
-      setMockCampaigns();
+      setError('Network error while loading campaigns');
     } finally {
       setLoading(false);
     }

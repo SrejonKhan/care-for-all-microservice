@@ -5,5 +5,6 @@ export default function CampaignsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <Layout>{children}</Layout>;
+  // Allow campaigns to be viewed by all users (no role restrictions)
+  return <Layout requiredRoles={[]}>{children}</Layout>;
 }

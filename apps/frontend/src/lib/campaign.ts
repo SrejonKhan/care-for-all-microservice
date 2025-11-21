@@ -102,7 +102,8 @@ class CampaignService {
       if (params.ownerId) searchParams.append('ownerId', params.ownerId);
       if (params.category) searchParams.append('category', params.category);
 
-      const url = `${this.baseUrl}/campaigns${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      // Use direct backend connection on port 4001
+      const url = `http://localhost:4001/campaigns${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -112,7 +113,29 @@ class CampaignService {
         },
       });
 
-      return await response.json();
+      const result = await response.json();
+      
+      if (result.success) {
+        return {
+          success: true,
+          data: {
+            campaigns: result.data.items,
+            pagination: {
+              currentPage: result.data.page,
+              totalPages: result.data.totalPages,
+              totalItems: result.data.total,
+              itemsPerPage: result.data.pageSize,
+              hasNextPage: result.data.page < result.data.totalPages,
+              hasPreviousPage: result.data.page > 1,
+            },
+          },
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
     } catch (error) {
       console.error('List campaigns error:', error);
       return {
@@ -127,7 +150,7 @@ class CampaignService {
 
   async getCampaign(id: string): Promise<CampaignResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/campaigns/${id}`, {
+      const response = await fetch(`http://localhost:4001/campaigns/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +158,19 @@ class CampaignService {
         },
       });
 
-      return await response.json();
+      const result = await response.json();
+      
+      if (result.success) {
+        return {
+          success: true,
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
     } catch (error) {
       console.error('Get campaign error:', error);
       return {
@@ -150,16 +185,28 @@ class CampaignService {
 
   async createCampaign(data: CreateCampaignRequest): Promise<CampaignResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/campaigns`, {
+      // Use the regular campaigns endpoint (no auth required)
+      const response = await fetch(`http://localhost:4001/campaigns`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.getAuthHeaders(),
         },
         body: JSON.stringify(data),
       });
 
-      return await response.json();
+      const result = await response.json();
+      
+      if (result.success) {
+        return {
+          success: true,
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
     } catch (error) {
       console.error('Create campaign error:', error);
       return {

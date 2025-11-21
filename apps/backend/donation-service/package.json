@@ -5,9 +5,15 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
+    "dev:worker": "bun --watch src/worker.ts",
     "start": "bun src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start:worker": "bun src/worker.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun && bun build src/worker.ts --outdir dist --target bun",
+    "build:worker": "bun build src/worker.ts --outdir dist --target bun",
     "test": "bun test",
+    "dev:local": "NODE_ENV=development DATABASE_URL=mongodb://localhost:27017/donation-service RABBITMQ_URL=amqp://localhost:5672 bun --watch src/index.ts",
+    "start:local": "NODE_ENV=production DATABASE_URL=mongodb://localhost:27017/donation-service RABBITMQ_URL=amqp://localhost:5672 bun src/index.ts",
+    "test:local": "DATABASE_URL=mongodb://localhost:27017/donation-service-test bun test",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -19,10 +25,15 @@
     "@care-for-all/shared-config": "workspace:*",
     "@care-for-all/shared-logger": "workspace:*",
     "@care-for-all/shared-rabbitmq": "workspace:*",
-    "@care-for-all/shared-otel": "workspace:*"
+    "@care-for-all/shared-otel": "workspace:*",
+    "mongoose": "^8.8.4",
+    "jsonwebtoken": "^9.0.2",
+    "amqplib": "^0.10.4"
   },
   "devDependencies": {
     "bun-types": "^1.1.38",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/amqplib": "^0.10.5"
   }
 }

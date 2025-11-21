@@ -71,25 +71,23 @@ export default function CreateCampaignForm({ onSuccess, onCancel }: CreateCampai
     setIsSubmitting(true);
 
     try {
-      const response = await campaignService.createCampaign({
+      // Clean up form data - remove empty imageUrl to avoid validation errors
+      const cleanFormData = {
         ...formData,
         startDate: new Date(formData.startDate).toISOString(),
         endDate: new Date(formData.endDate).toISOString(),
-      });
+        imageUrl: formData.imageUrl?.trim() || undefined, // Remove empty strings
+      };
+
+      const response = await campaignService.createCampaign(cleanFormData);
 
       if (response.success) {
         onSuccess?.();
       } else {
-        // While API is being debugged, show success for demo purposes
-        console.warn('API failed but form validation passed:', response.error?.message);
-        alert(`✅ Campaign "${formData.title}" created successfully!\n\n(Note: API is being debugged, but your form data is valid and would be saved when the service is fully operational.)`);
-        onSuccess?.();
+        setError(response.error?.message || 'Failed to create campaign');
       }
     } catch (err) {
-      // While API is being debugged, show success for demo purposes
-      console.warn('Network error but form validation passed:', err);
-      alert(`✅ Campaign "${formData.title}" created successfully!\n\n(Note: API is being debugged, but your form data is valid and would be saved when the service is fully operational.)`);
-      onSuccess?.();
+      setError('Network error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

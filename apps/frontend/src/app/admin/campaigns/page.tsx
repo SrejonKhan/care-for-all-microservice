@@ -30,13 +30,10 @@ export default function AdminCampaignsPage() {
       if (response.success && response.data) {
         setCampaigns(response.data.campaigns);
       } else {
-        // Show mock data while API is being debugged
-        console.warn('API failed, showing mock data:', response.error?.message);
-        setMockCampaigns();
+        setError(response.error?.message || 'Failed to load campaigns');
       }
     } catch (err) {
-      console.warn('Network error, showing mock data:', err);
-      setMockCampaigns();
+      setError('Network error while loading campaigns');
     } finally {
       setLoading(false);
     }

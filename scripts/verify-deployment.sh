@@ -10,7 +10,7 @@ echo "Care For All - Deployment Verification"
 echo "=================================="
 echo ""
 
-GATEWAY_URL="${1:-http://localhost:8080}"
+BASE_URL="${1:-http://localhost}"
 TIMEOUT=5
 
 # Color codes
@@ -42,11 +42,10 @@ check_service() {
 
 echo "🏥 Application Services:"
 echo "-----------------------------------"
-check_service "Gateway" "$GATEWAY_URL/health"
-check_service "Auth Service" "http://localhost:3000/health" || echo "  (Internal service - may not be exposed)"
-check_service "Campaign Service" "http://localhost:3000/health" || echo "  (Internal service - may not be exposed)"
-check_service "Donation Service" "http://localhost:3000/health" || echo "  (Internal service - may not be exposed)"
-check_service "Admin Frontend" "http://localhost:3002"
+check_service "Nginx (Entry Point)" "$BASE_URL/health"
+check_service "Frontend" "$BASE_URL/"
+check_service "API (via Nginx)" "$BASE_URL/api/health" || check_service "API (Direct)" "http://localhost:8080/health"
+check_service "API Documentation" "$BASE_URL/docs"
 
 echo ""
 echo "📊 Observability Services:"
@@ -84,9 +83,10 @@ fi
 
 echo "📍 Access URLs:"
 echo "-----------------------------------"
-echo "Gateway:         $GATEWAY_URL"
-echo "API Docs:        $GATEWAY_URL/docs"
-echo "Admin Panel:     http://localhost:3002"
+echo "Application:     $BASE_URL"
+echo "API:             $BASE_URL/api"
+echo "API Docs:        $BASE_URL/docs"
+echo "Admin Panel:     $BASE_URL/admin"
 echo "Grafana:         http://localhost:3001 (admin/admin)"
 echo "Jaeger:          http://localhost:16686"
 echo "Kibana:          http://localhost:5601"

@@ -12,6 +12,29 @@ volumes:
 
 services:
   # ============================================================================
+  # NGINX REVERSE PROXY
+  # ============================================================================
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - care-for-all
+    depends_on:
+      - gateway
+      - frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
   # APPLICATION SERVICES
   # ============================================================================
 
@@ -20,8 +43,6 @@ services:
       context: ..
       dockerfile: apps/backend/gateway/Dockerfile
     container_name: gateway
-    ports:
-      - "8080:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -170,8 +191,20 @@ services:
       - rabbitmq
       - otel-collector
 
-# Frontend will run locally in development mode
-  # To run frontend locally: cd apps/frontend && npm run dev
+  frontend:
+    build:
+      context: ../apps/frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://gateway:3000
+    networks:
+      - care-for-all
+    depends_on:
+      - gateway
+    restart: unless-stopped
 
   # ============================================================================
   # DATA & MESSAGING
