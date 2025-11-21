@@ -3,13 +3,10 @@ import { apiReference } from '@scalar/hono-api-reference';
 import { loadConfig } from '@care-for-all/shared-config';
 import { createLogger } from '@care-for-all/shared-logger';
 import { initTracing } from '@care-for-all/shared-otel';
-import { PledgeState } from '@care-for-all/shared-types';
-import { healthRoute } from './routes/health';
-import {
-  createPledgeRoute,
-  getPledgeRoute,
-  transitionPledgeStateRoute,
-} from './routes/donations';
+import { connectDatabase } from './config/database';
+import { initializeRabbitMQ } from './config/rabbitmq';
+import { healthRouter } from './routes/health';
+import { donationsRouter } from './routes/donations';
 
 // ============================================================================
 // CONFIGURATION
@@ -18,8 +15,8 @@ import {
 const config = loadConfig({
   serviceName: 'donation-service',
   required: {
-    database: false, // TODO: Enable when DB is set up
-    rabbitmq: false, // TODO: Enable when RabbitMQ is configured
+    database: true,
+    rabbitmq: true,
     otel: false,
   },
 });
@@ -45,89 +42,50 @@ if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
 
 const app = new OpenAPIHono();
 
-// Health check
-app.openapi(healthRoute, (c) => {
-  return c.json({
-    status: 'healthy',
-    service: 'donation-service',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+// CORS middleware (development only)
+if (config.NODE_ENV === 'development') {
+  app.use('/*', async (c, next) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (c.req.method === 'OPTIONS') {
+      return new Response('', { status: 204 });
+    }
+
+    await next();
+  });
+}
+
+// Request logging middleware
+app.use('/*', async (c, next) => {
+  const start = Date.now();
+  const { method, url } = c.req;
+
+  logger.info('Incoming request', { method, url });
+
+  await next();
+
+  const duration = Date.now() - start;
+  logger.info('Request completed', {
+    method,
+    url,
+    status: c.res.status,
+    duration: `${duration}ms`,
   });
 });
 
-// Donation routes
-app.openapi(createPledgeRoute, async (c) => {
-  const body = c.req.valid('json');
-  
-  logger.info('Creating donation', body);
+// ============================================================================
+// ROUTES
+// ============================================================================
 
-  // TODO: Validate campaign exists
-  // TODO: Insert donation into database with state PENDING
-  // TODO: Publish DonationCreatedEvent to RabbitMQ
-  // TODO: Trigger payment authorization workflow
+// Mount health router
+app.route('/', healthRouter);
 
-  const donation = {
-    id: 'donation_' + Date.now(),
-    ...body,
-    userId: 'user_123', // TODO: Get from auth context
-    state: PledgeState.PENDING,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+// Mount donations router
+app.route('/api', donationsRouter);
 
-  return c.json(
-    {
-      success: true,
-      data: donation,
-    },
-    201
-  );
-});
-
-app.openapi(getPledgeRoute, async (c) => {
-  const { id } = c.req.valid('param');
-  
-  logger.info('Getting donation', { id });
-
-  // TODO: Query donation from database
-
-  return c.json({
-    success: true,
-    data: {
-      id,
-      campaignId: 'camp_123',
-      userId: 'user_123',
-      amount: 100,
-      state: PledgeState.PENDING,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  });
-});
-
-app.openapi(transitionPledgeStateRoute, async (c) => {
-  const { id } = c.req.valid('param');
-  const body = c.req.valid('json');
-  
-  logger.info('Transitioning donation state', { id, newState: body.newState });
-
-  // TODO: Validate state transition (PENDING -> AUTHORIZED -> CAPTURED)
-  // TODO: Update donation state in database
-  // TODO: Publish DonationStateChangedEvent to RabbitMQ
-
-  return c.json({
-    success: true,
-    data: {
-      id,
-      previousState: PledgeState.PENDING,
-      newState: body.newState,
-      updatedAt: new Date().toISOString(),
-    },
-  });
-});
-
-// API Documentation
+// API Documentation (Scalar UI)
 app.get(
   '/docs',
   apiReference({
@@ -144,8 +102,59 @@ app.doc('/openapi', {
   info: {
     title: 'Donation Service API',
     version: '1.0.0',
-    description: 'Donation state machine service',
+    description:
+      'Donation service for the CareForAll platform with checkout and bank balance verification',
   },
+  servers: [
+    {
+      url: 'http://localhost:3003',
+      description: 'Local development',
+    },
+  ],
+});
+
+// Root endpoint
+app.get('/', (c) => {
+  return c.json({
+    service: 'donation-service',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/docs',
+    openapi: '/openapi',
+  });
+});
+
+// 404 handler
+app.notFound((c) => {
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Route not found',
+      },
+    },
+    404
+  );
+});
+
+// Error handler
+app.onError((error, c) => {
+  logger.error('Unhandled error', {
+    error: error.message,
+    stack: error.stack,
+  });
+
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: config.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      },
+    },
+    500
+  );
 });
 
 // ============================================================================
@@ -154,10 +163,30 @@ app.doc('/openapi', {
 
 const port = config.PORT;
 
-logger.info(`Starting donation-service on port ${port}`);
+async function startServer() {
+  try {
+    // Connect to database
+    await connectDatabase();
+    logger.info('Database connected');
+
+    // Initialize RabbitMQ
+    await initializeRabbitMQ();
+    logger.info('RabbitMQ initialized');
+
+    // Start server
+    logger.info(`Starting donation-service on port ${port}`);
+    logger.info(`API docs available at http://localhost:${port}/docs`);
+  } catch (error) {
+    logger.error('Failed to start server', {
+      error: (error as Error).message,
+    });
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default {
   port,
   fetch: app.fetch,
 };
-
