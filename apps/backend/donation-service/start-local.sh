@@ -1,56 +1,21 @@
 #!/bin/bash
 
-# Start Donation Service locally with MongoDB and RabbitMQ
+# Start donation service locally on port 4003
 
-echo "🚀 Starting Donation Service locally..."
-echo ""
-
-# Check if MongoDB is running
-if ! nc -z localhost 27017 2>/dev/null; then
-  echo "⚠️  MongoDB is not running on localhost:27017"
-  echo "   Please start MongoDB first:"
-  echo "   mongod --replSet rs0 --dbpath=/path/to/data"
-  echo ""
-  exit 1
-fi
-
-# Check if RabbitMQ is running
-if ! nc -z localhost 5672 2>/dev/null; then
-  echo "⚠️  RabbitMQ is not running on localhost:5672"
-  echo "   Please start RabbitMQ first:"
-  echo "   rabbitmq-server"
-  echo ""
-  exit 1
-fi
-
-echo "✅ MongoDB is running"
-echo "✅ RabbitMQ is running"
-echo ""
-
-# Set environment variables
 export NODE_ENV=development
+export PORT=4003
 export DATABASE_URL=mongodb://localhost:27017/donation-service
 export RABBITMQ_URL=amqp://localhost:5672
-export RABBITMQ_EXCHANGE=care-for-all
-export PORT=3003
-export JWT_SECRET=your-secret-key-change-in-production
-export CAMPAIGN_SERVICE_URL=http://localhost:3002
+export JWT_SECRET=local_dev_secret_key_change_in_production
+export AUTH_SERVICE_URL=http://localhost:4000
+export CAMPAIGN_SERVICE_URL=http://localhost:4001
 export LOG_LEVEL=info
+export BANK_MOCK_ENABLED=true
+export BANK_MOCK_SUCCESS_RATE=0.9
 
-echo "📋 Configuration:"
-echo "   Database: $DATABASE_URL"
-echo "   RabbitMQ: $RABBITMQ_URL"
-echo "   Port: $PORT"
-echo "   Campaign Service: $CAMPAIGN_SERVICE_URL"
-echo ""
+echo "Starting donation-service on port 4003..."
+echo "Database: $DATABASE_URL"
+echo "RabbitMQ: $RABBITMQ_URL"
+echo "API docs: http://localhost:4003/docs"
 
-echo "📚 API Documentation will be available at:"
-echo "   http://localhost:$PORT/docs"
-echo ""
-
-echo "🔧 Starting service..."
-echo ""
-
-# Start the service
 bun run dev
-

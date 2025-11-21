@@ -57,6 +57,10 @@ services:
       - TOTALS_SERVICE_URL=http://totals-service:3000
       - CHAT_SERVICE_URL=http://chat-service:3000
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    labels:
+      logging: "true"
+      service: "gateway"
+      tier: "api-gateway"
     networks:
       - care-for-all
     depends_on:
@@ -83,6 +87,10 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
       - JWT_SECRET=jwt_secret_change_in_production
+    labels:
+      logging: "true"
+      service: "auth-service"
+      tier: "backend"
     networks:
       - care-for-all
     depends_on:
@@ -103,6 +111,10 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    labels:
+      logging: "true"
+      service: "campaign-service"
+      tier: "backend"
     networks:
       - care-for-all
     depends_on:
@@ -119,15 +131,19 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - LOG_LEVEL=info
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - DATABASE_URL=mongodb://mongodb:27017/care_for_all
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
       - PAYMENT_SERVICE_URL=http://payment-service:3000
+    labels:
+      logging: "true"
+      service: "donation-service"
+      tier: "backend"
     networks:
       - care-for-all
     depends_on:
-      - postgres
+      - mongodb
       - rabbitmq
       - otel-collector
 
@@ -144,6 +160,10 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    labels:
+      logging: "true"
+      service: "payment-service"
+      tier: "backend"
     networks:
       - care-for-all
     depends_on:
@@ -164,6 +184,10 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    labels:
+      logging: "true"
+      service: "totals-service"
+      tier: "backend"
     networks:
       - care-for-all
     depends_on:
@@ -184,6 +208,10 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    labels:
+      logging: "true"
+      service: "chat-service"
+      tier: "backend"
     networks:
       - care-for-all
     depends_on:

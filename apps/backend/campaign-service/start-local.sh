@@ -44,7 +44,8 @@ MONGODB_URI=mongodb://localhost:27017/campaign-service-dev
 RABBITMQ_URL=amqp://localhost:5672
 RABBITMQ_EXCHANGE=care-for-all
 JWT_SECRET=your-secret-key-change-in-production
-AUTH_SERVICE_URL=http://localhost:3000
+AUTH_SERVICE_URL=http://localhost:4000
+DONATION_SERVICE_URL=http://localhost:4003
 LOG_LEVEL=debug
 EOF
     echo -e "${GREEN}✓ Created .env.local${NC}"

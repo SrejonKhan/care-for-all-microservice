@@ -1,3 +1,4 @@
+
 // Structured JSON logger for microservices
 // Outputs to stdout for container log collection by Filebeat
 
@@ -82,6 +83,44 @@ export class Logger {
     return child;
   }
 
+  private shouldLog(level: LogLevel): boolean {
+    return LOG_LEVELS[level] >= LOG_LEVELS[this.minLevel];
+  }
+
+  private log(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+    if (!this.shouldLog(level)) {
+      return;
+    }
+
+    const logEntry: LogEntry = {
+      level,
+      message,
+      serviceName: this.serviceName,
+      timestamp: new Date().toISOString(),
+      ...this.context,
+      ...meta,
+    };
+
+    const output = this.prettyPrint
+      ? this.formatPretty(logEntry)
+      : JSON.stringify(logEntry);
+
+    console.log(output);
+  }
+
+  private formatPretty(entry: LogEntry): string {
+    const levelColors: Record<LogLevel, string> = {
+      debug: '\x1b[36m',
+      info: '\x1b[32m',
+      warn: '\x1b[33m',
+      error: '\x1b[31m',
+    };
+    const reset = '\x1b[0m';
+    const color = levelColors[entry.level];
+
+    return `${color}[${entry.level.toUpperCase()}]${reset} ${entry.timestamp} ${entry.serviceName}: ${entry.message}`;
+  }
+
   /**
    * Log at debug level
    */
@@ -120,57 +159,6 @@ export class Logger {
       : {};
 
     this.log('error', message, { ...errorMeta, ...meta });
-  }
-
-  /**
-   * Core log method
-   */
-  private log(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
-    // Check if log level is enabled
-    if (LOG_LEVELS[level] < LOG_LEVELS[this.minLevel]) {
-      return;
-    }
-
-    const entry: LogEntry = {
-      level,
-      message,
-      serviceName: this.serviceName,
-      timestamp: new Date().toISOString(),
-      ...this.context,
-      ...meta,
-    };
-
-    // Output to stdout
-    if (this.prettyPrint) {
-      this.prettyLog(entry);
-    } else {
-      console.log(JSON.stringify(entry));
-    }
-  }
-
-  /**
-   * Pretty print for development
-   */
-  private prettyLog(entry: LogEntry): void {
-    const colors = {
-      debug: '\x1b[36m', // Cyan
-      info: '\x1b[32m',  // Green
-      warn: '\x1b[33m',  // Yellow
-      error: '\x1b[31m', // Red
-    };
-    const reset = '\x1b[0m';
-    const color = colors[entry.level];
-
-    const timestamp = new Date(entry.timestamp).toISOString();
-    const prefix = `${color}[${entry.level.toUpperCase()}]${reset} ${timestamp} [${entry.serviceName}]`;
-    
-    console.log(`${prefix} ${entry.message}`);
-    
-    // Print additional metadata if present
-    const { level, message, serviceName, timestamp: ts, ...meta } = entry;
-    if (Object.keys(meta).length > 0) {
-      console.log('  ', JSON.stringify(meta, null, 2));
-    }
   }
 }
 
@@ -232,3 +220,28 @@ export function createRequestContext(req: {
   };
 }
 
+/**
+ * Create HTTP request logging middleware
+ * Logs all HTTP requests in JSON format
+ */
+export function createHttpLoggingMiddleware(logger: Logger) {
+  return (req: any, res: any, next: any) => {
+    const start = Date.now();
+    
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      
+      logger.info('HTTP Request', {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        responseTime: `${duration}ms`,
+        contentLength: res.get('content-length'),
+        userAgent: req.get('user-agent'),
+        remoteAddr: req.ip || req.connection.remoteAddress,
+      });
+    });
+    
+    next();
+  };
+}
