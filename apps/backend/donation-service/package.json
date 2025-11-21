@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/donation-service",
   "version": "1.0.0",
+  "description": "Donation state machine service",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",

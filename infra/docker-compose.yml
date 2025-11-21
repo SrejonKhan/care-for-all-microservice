@@ -171,11 +171,29 @@ services:
 
   admin-frontend:
     build:
-      context: ../apps/frontend/admin-frontend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/frontend/admin-frontend/Dockerfile
     container_name: admin-frontend
     ports:
-      - "3002:80"
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - care-for-all
+    depends_on:
+      - gateway
+
+  user-frontend:
+    build:
+      context: ..
+      dockerfile: apps/frontend/user-frontend/Dockerfile
+    container_name: user-frontend
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
     networks:
       - care-for-all
     depends_on:
@@ -286,7 +304,7 @@ services:
     ports:
       - "8081:8080"
     volumes:
-      - /:/rootfs:ro
+      - /:/rootfs:ro,rslave
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro

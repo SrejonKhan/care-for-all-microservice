@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/auth-service",
   "version": "1.0.0",
+  "description": "Authentication service for Care For All",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",

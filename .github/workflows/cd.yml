@@ -1,0 +1,248 @@
+name: CD - Continuous Deployment to Digital Ocean
+
+on:
+  workflow_run:
+    workflows: ["CI - Continuous Integration"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  DEPLOY_USER: deploy
+  DEPLOY_PATH: /opt/care-for-all
+
+jobs:
+  # Job 1: Deploy to Digital Ocean Droplet
+  deploy:
+    name: Deploy to Digital Ocean
+    runs-on: ubuntu-latest
+    # Only run if CI passed
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    environment:
+      name: ${{ inputs.environment || 'production' }}
+      url: ${{ secrets.APP_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+
+      - name: Add Digital Ocean host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment directory
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "mkdir -p ${{ env.DEPLOY_PATH }}"
+
+      - name: Copy files to server
+        run: |
+          rsync -avz --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude '.turbo' \
+            --exclude 'dist' \
+            --exclude 'build' \
+            --exclude '.env*.local' \
+            ./ ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }}:${{ env.DEPLOY_PATH }}/
+
+      - name: Create production environment file
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cat > ${{ env.DEPLOY_PATH }}/.env.production << 'EOF'
+          NODE_ENV=production
+
+          # Database
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+          # RabbitMQ
+          RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+
+          # OpenTelemetry
+          OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+          # Service URLs (internal Docker network)
+          GATEWAY_URL=http://gateway:3000
+          AUTH_SERVICE_URL=http://auth-service:3000
+          CAMPAIGN_SERVICE_URL=http://campaign-service:3000
+          DONATION_SERVICE_URL=http://donation-service:3000
+          PAYMENT_SERVICE_URL=http://payment-service:3000
+          TOTALS_SERVICE_URL=http://totals-service:3000
+          CHAT_SERVICE_URL=http://chat-service:3000
+
+          # Security
+          INTERNAL_SERVICE_SECRET=${{ secrets.INTERNAL_SERVICE_SECRET }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+          # External URLs
+          APP_URL=${{ secrets.APP_URL }}
+          EOF"
+
+      - name: Pull latest Docker images
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }}/infra && \
+            docker compose pull"
+
+      - name: Stop existing containers
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }}/infra && \
+            docker compose down --remove-orphans"
+
+      - name: Start services with Docker Compose
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }}/infra && \
+            docker compose --env-file ../.env.production up -d --build --force-recreate"
+
+      - name: Wait for services to be healthy
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "
+            echo 'Waiting for services to be healthy...'
+            for i in {1..30}; do
+              if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+                echo '✅ Gateway is healthy'
+                exit 0
+              fi
+              echo 'Waiting for gateway... (\$i/30)'
+              sleep 10
+            done
+            echo '❌ Services failed to become healthy'
+            exit 1
+          "
+
+      - name: Run database migrations
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }} && \
+            echo 'Database migrations would run here (TODO: implement migrations)'"
+
+      - name: Verify deployment
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }}/infra && \
+            docker compose ps"
+
+      - name: Show service logs (last 50 lines)
+        if: always()
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }}/infra && \
+            docker compose logs --tail=50"
+
+  # Job 2: Post-deployment health checks
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Check Gateway Health
+        run: |
+          for i in {1..5}; do
+            if curl -f ${{ secrets.APP_URL }}/health; then
+              echo "✅ Gateway is responding"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+          echo "❌ Gateway health check failed"
+          exit 1
+
+      - name: Check Observability Stack
+        run: |
+          echo "Checking observability services..."
+
+          # Check Grafana
+          if curl -f ${{ secrets.APP_URL }}:3001/api/health; then
+            echo "✅ Grafana is up"
+          else
+            echo "⚠️  Grafana may not be responding"
+          fi
+
+          # Check Prometheus
+          if curl -f ${{ secrets.APP_URL }}:9090/-/healthy; then
+            echo "✅ Prometheus is up"
+          else
+            echo "⚠️  Prometheus may not be responding"
+          fi
+
+  # Job 3: Deployment notification and summary
+  notify:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy, health-check]
+    if: always()
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment || 'production' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Health Check: ${{ needs.health-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- Application: ${{ secrets.APP_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- API Docs: ${{ secrets.APP_URL }}/docs" >> $GITHUB_STEP_SUMMARY
+          echo "- Grafana: ${{ secrets.APP_URL }}:3001" >> $GITHUB_STEP_SUMMARY
+          echo "- Jaeger: ${{ secrets.APP_URL }}:16686" >> $GITHUB_STEP_SUMMARY
+          echo "- Kibana: ${{ secrets.APP_URL }}:5601" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: needs.deploy.result == 'failure' || needs.health-check.result == 'failure'
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Please check the logs and take corrective action."
+          exit 1
+
+      - name: Notify on success
+        if: needs.deploy.result == 'success' && needs.health-check.result == 'success'
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Application is live at ${{ secrets.APP_URL }}"
+
+  # Job 4: Rollback (manual trigger only)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'workflow_dispatch'
+    needs: [deploy, health-check]
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+
+      - name: Add Digital Ocean host to known_hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rollback to previous version
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "
+            cd ${{ env.DEPLOY_PATH }}/infra
+            echo 'Rolling back to previous deployment...'
+            docker compose down
+            # Pull previous images (tagged with previous commit)
+            # This is a simplified rollback - in production, you'd track versions
+            docker compose up -d
+          "
+
+      - name: Verify rollback
+        run: |
+          echo "Rollback initiated. Please verify manually."

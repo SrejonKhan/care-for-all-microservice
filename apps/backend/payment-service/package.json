@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/payment-service",
   "version": "1.0.0",
+  "description": "Payment processing with idempotency",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
