@@ -1,114 +1,71 @@
-import { createRoute } from '@hono/zod-openapi';
-import { z } from 'zod';
+// @ts-nocheck - Complex type inference with Hono OpenAPI causes false positives
+import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { CampaignService } from '../services/campaign.service';
+import { EventService } from '../services/event.service';
+import { AuthClientService } from '../services/auth-client.service';
+import { authMiddleware, getUser } from '../middleware/auth';
+import { verifyCampaignOwnership } from '../middleware/ownership';
+import { ROUTING_KEYS } from '../config/rabbitmq';
+import {
+  CreateCampaignRequestSchema,
+  UpdateCampaignRequestSchema,
+  ListCampaignsQuerySchema,
+  CampaignIdParamSchema,
+  CampaignResponseSchema,
+  PaginatedCampaignsResponseSchema,
+  ApiResponseSchema,
+} from '../schemas/campaign.schema';
+import { createLogger } from '@care-for-all/shared-logger';
 
 // ============================================================================
-// SCHEMAS
+// CONFIGURATION
 // ============================================================================
 
-const CampaignStatusEnum = z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED']);
-
-const CampaignSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  goalAmount: z.number().positive(),
-  currentAmount: z.number().nonnegative(),
-  status: CampaignStatusEnum,
-  ownerId: z.string(),
-  startDate: z.string(),
-  endDate: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-const CreateCampaignSchema = z.object({
-  title: z.string().min(3).max(200),
-  description: z.string().min(10).max(5000),
-  goalAmount: z.number().positive(),
-  startDate: z.string(),
-  endDate: z.string(),
-});
-
-const UpdateCampaignSchema = z.object({
-  title: z.string().min(3).max(200).optional(),
-  description: z.string().min(10).max(5000).optional(),
-  goalAmount: z.number().positive().optional(),
-  status: CampaignStatusEnum.optional(),
-  endDate: z.string().optional(),
-});
-
-const ListQuerySchema = z.object({
-  page: z.string().default('1').transform(Number),
-  pageSize: z.string().default('10').transform(Number),
-  status: CampaignStatusEnum.optional(),
-  ownerId: z.string().optional(),
-});
-
-const PaginatedResponseSchema = z.object({
-  items: z.array(CampaignSchema),
-  total: z.number(),
-  page: z.number(),
-  pageSize: z.number(),
-  totalPages: z.number(),
-});
-
-const ApiResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.any().optional(),
-  error: z.object({
-    code: z.string(),
-    message: z.string(),
-  }).optional(),
+const logger = createLogger({
+  serviceName: 'campaign-service',
+  minLevel: 'info',
 });
 
 // ============================================================================
-// ROUTES
+// ROUTE DEFINITIONS
 // ============================================================================
 
-export const listCampaignsRoute = createRoute({
+const listCampaignsRoute = createRoute({
   method: 'get',
   path: '/campaigns',
   tags: ['Campaigns'],
   summary: 'List campaigns',
-  description: 'Retrieve a paginated list of campaigns',
+  description: 'Retrieve a paginated list of campaigns with optional filters',
   request: {
-    query: ListQuerySchema,
+    query: ListCampaignsQuerySchema,
   },
   responses: {
     200: {
       description: 'List of campaigns',
       content: {
         'application/json': {
-          schema: z.object({
-            success: z.boolean(),
-            data: PaginatedResponseSchema,
-          }),
+          schema: PaginatedCampaignsResponseSchema,
         },
       },
     },
   },
 });
 
-export const getCampaignRoute = createRoute({
+const getCampaignRoute = createRoute({
   method: 'get',
   path: '/campaigns/{id}',
   tags: ['Campaigns'],
   summary: 'Get campaign by ID',
   description: 'Retrieve a single campaign by its ID',
   request: {
-    params: z.object({
-      id: z.string(),
-    }),
+    params: CampaignIdParamSchema,
   },
   responses: {
     200: {
       description: 'Campaign details',
       content: {
         'application/json': {
-          schema: z.object({
-            success: z.boolean(),
-            data: CampaignSchema,
-          }),
+          schema: CampaignResponseSchema,
         },
       },
     },
@@ -123,17 +80,18 @@ export const getCampaignRoute = createRoute({
   },
 });
 
-export const createCampaignRoute = createRoute({
+const createCampaignRoute = createRoute({
   method: 'post',
   path: '/campaigns',
   tags: ['Campaigns'],
   summary: 'Create a new campaign',
-  description: 'Create a new campaign with the provided details',
+  description: 'Create a new campaign. User will be elevated to CAMPAIGN_OWNER role.',
+  security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
         'application/json': {
-          schema: CreateCampaignSchema,
+          schema: CreateCampaignRequestSchema,
         },
       },
     },
@@ -143,10 +101,7 @@ export const createCampaignRoute = createRoute({
       description: 'Campaign created successfully',
       content: {
         'application/json': {
-          schema: z.object({
-            success: z.boolean(),
-            data: CampaignSchema,
-          }),
+          schema: CampaignResponseSchema,
         },
       },
     },
@@ -158,23 +113,30 @@ export const createCampaignRoute = createRoute({
         },
       },
     },
+    401: {
+      description: 'Unauthorized',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
   },
 });
 
-export const updateCampaignRoute = createRoute({
+const updateCampaignRoute = createRoute({
   method: 'patch',
   path: '/campaigns/{id}',
   tags: ['Campaigns'],
   summary: 'Update a campaign',
-  description: 'Update campaign details',
+  description: 'Update campaign details. Only owner or admin can update.',
+  security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({
-      id: z.string(),
-    }),
+    params: CampaignIdParamSchema,
     body: {
       content: {
         'application/json': {
-          schema: UpdateCampaignSchema,
+          schema: UpdateCampaignRequestSchema,
         },
       },
     },
@@ -182,6 +144,30 @@ export const updateCampaignRoute = createRoute({
   responses: {
     200: {
       description: 'Campaign updated successfully',
+      content: {
+        'application/json': {
+          schema: CampaignResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid request',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: 'Forbidden',
       content: {
         'application/json': {
           schema: ApiResponseSchema,
@@ -199,3 +185,372 @@ export const updateCampaignRoute = createRoute({
   },
 });
 
+const deleteCampaignRoute = createRoute({
+  method: 'delete',
+  path: '/campaigns/{id}',
+  tags: ['Campaigns'],
+  summary: 'Delete a campaign',
+  description: 'Delete (cancel) a campaign. Only owner or admin can delete.',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: CampaignIdParamSchema,
+  },
+  responses: {
+    200: {
+      description: 'Campaign deleted successfully',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: 'Forbidden',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: 'Campaign not found',
+      content: {
+        'application/json': {
+          schema: ApiResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+// ============================================================================
+// ROUTER
+// ============================================================================
+
+export const campaignRoutes = new OpenAPIHono();
+
+// List campaigns (public)
+campaignRoutes.openapi(listCampaignsRoute, async (c) => {
+  try {
+    const query = c.req.valid('query');
+
+    const result = await CampaignService.listCampaigns(
+      {
+        status: query.status,
+        ownerId: query.ownerId,
+        category: query.category,
+      },
+      {
+        page: query.page,
+        pageSize: query.pageSize,
+      }
+    );
+
+    return c.json(
+      {
+        success: true,
+        data: result,
+      },
+      200
+    );
+  } catch (error) {
+    logger.error('Error listing campaigns', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'LIST_FAILED',
+          message: 'Failed to list campaigns',
+        },
+      },
+      500
+    );
+  }
+});
+
+// Get campaign by ID (public)
+campaignRoutes.openapi(getCampaignRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param');
+
+    const campaign = await CampaignService.getCampaignById(id);
+
+    return c.json(
+      {
+        success: true,
+        data: campaign.toJSON(),
+      },
+      200
+    );
+  } catch (error: any) {
+    if (error.code === 'CAMPAIGN_NOT_FOUND') {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        },
+        404
+      );
+    }
+
+    logger.error('Error getting campaign', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'GET_FAILED',
+          message: 'Failed to get campaign',
+        },
+      },
+      500
+    );
+  }
+});
+
+// Create campaign (authenticated)
+campaignRoutes.openapi(createCampaignRoute, authMiddleware, async (c) => {
+  try {
+    const body = c.req.valid('json');
+    const user = getUser(c);
+
+    if (!user) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        401
+      );
+    }
+
+    // Create campaign
+    const campaign = await CampaignService.createCampaign(
+      {
+        ...body,
+        startDate: new Date(body.startDate),
+        endDate: new Date(body.endDate),
+      },
+      user.userId
+    );
+
+    // Elevate user to CAMPAIGN_OWNER role if not already
+    if (user.role === 'USER') {
+      const authHeader = c.req.header('Authorization');
+      const token = authHeader?.split(' ')[1];
+      if (token) {
+        await AuthClientService.elevateUserToCampaignOwner(user.userId, token);
+      }
+    }
+
+    // Publish campaign.created event
+    await EventService.publishEvent(ROUTING_KEYS.CAMPAIGN_CREATED, {
+      campaignId: campaign._id.toString(),
+      title: campaign.title,
+      description: campaign.description,
+      goalAmount: campaign.goalAmount,
+      ownerId: campaign.ownerId,
+      startDate: campaign.startDate.toISOString(),
+      endDate: campaign.endDate.toISOString(),
+      category: campaign.category,
+    });
+
+    logger.info('Campaign created', {
+      campaignId: campaign._id.toString(),
+      ownerId: user.userId,
+    });
+
+    return c.json(
+      {
+        success: true,
+        data: campaign.toJSON(),
+      },
+      201
+    );
+  } catch (error: any) {
+    if (error.code === 'INVALID_DATE_RANGE') {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        },
+        400
+      );
+    }
+
+    logger.error('Error creating campaign', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'CREATE_FAILED',
+          message: 'Failed to create campaign',
+        },
+      },
+      500
+    );
+  }
+});
+
+// Update campaign (authenticated, owner or admin)
+campaignRoutes.openapi(
+  updateCampaignRoute,
+  authMiddleware,
+  verifyCampaignOwnership,
+  async (c) => {
+    try {
+      const { id } = c.req.valid('param');
+      const body = c.req.valid('json');
+      const user = getUser(c);
+
+      // Track old status for event
+      const oldCampaign = await CampaignService.getCampaignById(id);
+      const oldStatus = oldCampaign.status;
+
+      // Update campaign
+      const updates: any = { ...body };
+      if (body.endDate) {
+        updates.endDate = new Date(body.endDate);
+      }
+
+      const campaign = await CampaignService.updateCampaign(id, updates);
+
+      // Publish events
+      if (body.status && body.status !== oldStatus) {
+        await EventService.publishEvent(ROUTING_KEYS.CAMPAIGN_STATUS_CHANGED, {
+          campaignId: id,
+          oldStatus,
+          newStatus: body.status,
+          changedBy: user?.userId,
+        });
+      }
+
+      await EventService.publishEvent(ROUTING_KEYS.CAMPAIGN_UPDATED, {
+        campaignId: id,
+        updates: body,
+      });
+
+      logger.info('Campaign updated', {
+        campaignId: id,
+        userId: user?.userId,
+      });
+
+      return c.json(
+        {
+          success: true,
+          data: campaign.toJSON(),
+        },
+        200
+      );
+    } catch (error: any) {
+      if (error.code === 'CAMPAIGN_NOT_FOUND') {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: error.code,
+              message: error.message,
+            },
+          },
+          404
+        );
+      }
+
+      if (error.code === 'INVALID_DATE_RANGE') {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: error.code,
+              message: error.message,
+            },
+          },
+          400
+        );
+      }
+
+      logger.error('Error updating campaign', error);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'UPDATE_FAILED',
+            message: 'Failed to update campaign',
+          },
+        },
+        500
+      );
+    }
+  }
+);
+
+// Delete campaign (authenticated, owner or admin)
+campaignRoutes.openapi(
+  deleteCampaignRoute,
+  authMiddleware,
+  verifyCampaignOwnership,
+  async (c) => {
+    try {
+      const { id } = c.req.valid('param');
+      const user = getUser(c);
+
+      await CampaignService.deleteCampaign(id);
+
+      logger.info('Campaign deleted', {
+        campaignId: id,
+        userId: user?.userId,
+      });
+
+      return c.json(
+        {
+          success: true,
+          data: {
+            message: 'Campaign deleted successfully',
+          },
+        },
+        200
+      );
+    } catch (error: any) {
+      if (error.code === 'CAMPAIGN_NOT_FOUND') {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: error.code,
+              message: error.message,
+            },
+          },
+          404
+        );
+      }
+
+      logger.error('Error deleting campaign', error);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'DELETE_FAILED',
+            message: 'Failed to delete campaign',
+          },
+        },
+        500
+      );
+    }
+  }
+);
