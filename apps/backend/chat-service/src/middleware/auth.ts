@@ -1,7 +1,7 @@
 import { Context, Next } from 'hono';
-import * as jwt from 'jsonwebtoken';
 import { loadConfig } from '@care-for-all/shared-config';
 import { createLogger } from '@care-for-all/shared-logger';
+import { TokenVerifier } from '@care-for-all/shared-auth';
 
 // Extend Hono context to include user
 type Env = {
@@ -25,6 +25,9 @@ const logger = createLogger({
   prettyPrint: config.NODE_ENV === 'development',
 });
 
+// Initialize token verifier on module load
+TokenVerifier.initialize();
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -44,18 +47,7 @@ export interface AccessTokenPayload {
  * Verify JWT token and extract payload
  */
 export function verifyToken(token: string): AccessTokenPayload {
-  try {
-    const decoded = jwt.verify(token, config.JWT_SECRET!) as AccessTokenPayload;
-    return decoded;
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      throw new Error('Token expired');
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      throw new Error('Invalid token');
-    }
-    throw new Error('Token verification failed');
-  }
+  return TokenVerifier.verifyAccessToken(token);
 }
 
 /**
@@ -72,17 +64,19 @@ export async function optionalAuth(c: Context, next: Next) {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = verifyToken(token);
+    const payload = TokenVerifier.verifyAccessTokenOptional(token);
+    
+    if (payload) {
+      c.set('user', {
+        userId: payload.userId,
+        role: payload.role,
+      });
 
-    c.set('user', {
-      userId: decoded.userId,
-      role: decoded.role,
-    });
-
-    logger.debug('User authenticated (optional)', {
-      userId: decoded.userId,
-      role: decoded.role,
-    });
+      logger.debug('User authenticated (optional)', {
+        userId: payload.userId,
+        role: payload.role,
+      });
+    }
   } catch (error) {
     // Invalid token, but continue anyway since auth is optional
     logger.warn('Invalid token in optional auth', {

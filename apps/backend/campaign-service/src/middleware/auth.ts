@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
 import { createLogger } from '@care-for-all/shared-logger';
-import * as jwt from 'jsonwebtoken';
+import { TokenVerifier } from '@care-for-all/shared-auth';
 
 // ============================================================================
 // CONFIGURATION
@@ -11,7 +11,8 @@ const logger = createLogger({
   minLevel: 'info',
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Initialize token verifier on module load
+TokenVerifier.initialize();
 
 // ============================================================================
 // TYPES
@@ -71,13 +72,8 @@ export async function authMiddleware(c: Context, next: Next) {
 
     const token = parts[1];
 
-    if (!JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured');
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const payload = decoded as AccessTokenPayload;
+    // Verify token using RSA public key
+    const payload = TokenVerifier.verifyAccessToken(token);
 
     // Store user info in context
     c.set('user', payload);
@@ -86,8 +82,10 @@ export async function authMiddleware(c: Context, next: Next) {
 
     await next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      logger.warn('Invalid token', { error: error.message });
+    const errorMessage = (error as Error).message;
+    
+    if (errorMessage.includes('expired') || errorMessage.includes('Invalid')) {
+      logger.warn('Invalid token', { error: errorMessage });
       return c.json(
         {
           success: false,
@@ -125,9 +123,8 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
       if (parts.length === 2 && parts[0] === 'Bearer') {
         const token = parts[1];
         try {
-          if (JWT_SECRET) {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            const payload = decoded as AccessTokenPayload;
+          const payload = TokenVerifier.verifyAccessTokenOptional(token);
+          if (payload) {
             c.set('user', payload);
           }
         } catch (error) {

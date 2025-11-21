@@ -27,8 +27,8 @@
     "@care-for-all/shared-logger": "workspace:*",
     "@care-for-all/shared-rabbitmq": "workspace:*",
     "@care-for-all/shared-otel": "workspace:*",
-    "mongoose": "^8.8.3",
-    "jsonwebtoken": "^9.0.2"
+    "@care-for-all/shared-auth": "workspace:*",
+    "mongoose": "^8.8.3"
   },
   "devDependencies": {
     "bun-types": "^1.1.38",

@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
-import * as jwt from 'jsonwebtoken';
 import { createLogger } from '@care-for-all/shared-logger';
+import { TokenVerifier } from '@care-for-all/shared-auth';
 
 // ============================================================================
 // CONFIGURATION
@@ -11,7 +11,8 @@ const logger = createLogger({
   minLevel: 'info',
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Initialize token verifier on module load
+TokenVerifier.initialize();
 
 // ============================================================================
 // TYPES
@@ -48,20 +49,26 @@ export async function optionalAuth(c: Context, next: Next) {
     const token = authHeader.substring(7);
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as AccessTokenPayload;
+      const payload = TokenVerifier.verifyAccessTokenOptional(token);
+      
+      if (payload) {
+        // Set user context
+        c.set('user', {
+          userId: payload.userId,
+          email: payload.email || undefined,
+          role: payload.role,
+        });
+        c.set('isAuthenticated', true);
 
-      // Set user context
-      c.set('user', {
-        userId: decoded.userId,
-        email: decoded.email,
-        role: decoded.role,
-      });
-      c.set('isAuthenticated', true);
-
-      logger.info('User authenticated', {
-        userId: decoded.userId,
-        role: decoded.role,
-      });
+        logger.info('User authenticated', {
+          userId: payload.userId,
+          role: payload.role,
+        });
+      } else {
+        // Invalid token, treat as guest
+        c.set('user', null);
+        c.set('isAuthenticated', false);
+      }
     } catch (jwtError) {
       // Invalid token, treat as guest
       logger.warn('Invalid JWT token, treating as guest', {
@@ -107,19 +114,19 @@ export async function requireAuth(c: Context, next: Next) {
     const token = authHeader.substring(7);
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as AccessTokenPayload;
+      const payload = TokenVerifier.verifyAccessToken(token);
 
       // Set user context
       c.set('user', {
-        userId: decoded.userId,
-        email: decoded.email,
-        role: decoded.role,
+        userId: payload.userId,
+        email: payload.email || undefined,
+        role: payload.role,
       });
       c.set('isAuthenticated', true);
 
       logger.info('User authenticated', {
-        userId: decoded.userId,
-        role: decoded.role,
+        userId: payload.userId,
+        role: payload.role,
       });
 
       await next();

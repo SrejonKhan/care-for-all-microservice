@@ -19,7 +19,16 @@ const logger = createLogger({
     minLevel: 'info',
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_in_production';
+// Get RSA private key from environment
+const getPrivateKey = (): string => {
+    const privateKey = process.env.JWT_PRIVATE_KEY;
+    if (!privateKey) {
+        throw new Error('JWT_PRIVATE_KEY is required for signing tokens');
+    }
+    // Handle newlines in environment variable (common when using multiline strings)
+    return privateKey.replace(/\\n/g, '\n');
+};
+
 const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -43,7 +52,9 @@ export class TokenService {
      */
     static generateAccessToken(payload: AccessTokenPayload): string {
         try {
-            const token = jwt.sign(payload as any, JWT_SECRET, {
+            const privateKey = getPrivateKey();
+            const token = jwt.sign(payload as any, privateKey, {
+                algorithm: 'RS256', // RSA with SHA-256
                 expiresIn: JWT_ACCESS_EXPIRES_IN,
                 issuer: 'care-for-all-auth',
                 audience: 'care-for-all-api',
@@ -77,7 +88,9 @@ export class TokenService {
                 tokenId: refreshTokenRecord._id.toString(),
             };
 
-            const token = jwt.sign(payload as any, JWT_SECRET, {
+            const privateKey = getPrivateKey();
+            const token = jwt.sign(payload as any, privateKey, {
+                algorithm: 'RS256', // RSA with SHA-256
                 expiresIn: JWT_REFRESH_EXPIRES_IN,
                 issuer: 'care-for-all-auth',
                 audience: 'care-for-all-api',
@@ -122,7 +135,15 @@ export class TokenService {
      */
     static verifyAccessToken(token: string): AccessTokenPayload {
         try {
-            const decoded = jwt.verify(token, JWT_SECRET, {
+            const publicKey = process.env.JWT_PUBLIC_KEY;
+            if (!publicKey) {
+                throw new Error('JWT_PUBLIC_KEY is required for token verification');
+            }
+            // Handle newlines in environment variable
+            const key = publicKey.replace(/\\n/g, '\n');
+            
+            const decoded = jwt.verify(token, key, {
+                algorithms: ['RS256'], // RSA with SHA-256
                 issuer: 'care-for-all-auth',
                 audience: 'care-for-all-api',
             }) as AccessTokenPayload;
@@ -150,7 +171,15 @@ export class TokenService {
      */
     static verifyRefreshToken(token: string): RefreshTokenPayload {
         try {
-            const decoded = jwt.verify(token, JWT_SECRET, {
+            const publicKey = process.env.JWT_PUBLIC_KEY;
+            if (!publicKey) {
+                throw new Error('JWT_PUBLIC_KEY is required for token verification');
+            }
+            // Handle newlines in environment variable
+            const key = publicKey.replace(/\\n/g, '\n');
+            
+            const decoded = jwt.verify(token, key, {
+                algorithms: ['RS256'], // RSA with SHA-256
                 issuer: 'care-for-all-auth',
                 audience: 'care-for-all-api',
             }) as RefreshTokenPayload;

@@ -27,8 +27,8 @@
     "@care-for-all/shared-logger": "workspace:*",
     "@care-for-all/shared-rabbitmq": "workspace:*",
     "@care-for-all/shared-otel": "workspace:*",
+    "@care-for-all/shared-auth": "workspace:*",
     "mongoose": "^8.8.4",
-    "jsonwebtoken": "^9.0.2",
     "amqplib": "^0.10.4"
   },
   "devDependencies": {

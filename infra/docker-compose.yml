@@ -87,7 +87,8 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
-      - JWT_SECRET=jwt_secret_change_in_production
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:-}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
     networks:
       - care-for-all
     depends_on:

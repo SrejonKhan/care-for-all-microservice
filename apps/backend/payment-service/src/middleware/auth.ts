@@ -1,7 +1,7 @@
 import { Context, Next } from 'hono';
-import * as jwt from 'jsonwebtoken';
 import { loadConfig } from '@care-for-all/shared-config';
 import { createLogger } from '@care-for-all/shared-logger';
+import { TokenVerifier } from '@care-for-all/shared-auth';
 
 // ============================================================================
 // CONFIGURATION
@@ -17,6 +17,9 @@ const logger = createLogger({
   minLevel: config.LOG_LEVEL,
   prettyPrint: config.NODE_ENV === 'development',
 });
+
+// Initialize token verifier on module load
+TokenVerifier.initialize();
 
 // ============================================================================
 // TYPES
@@ -47,17 +50,19 @@ export async function optionalAuth(c: Context, next: Next) {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET!) as AccessTokenPayload;
+    const payload = TokenVerifier.verifyAccessTokenOptional(token);
+    
+    if (payload) {
+      c.set('user', {
+        userId: payload.userId,
+        role: payload.role,
+      });
 
-    c.set('user', {
-      userId: decoded.userId,
-      role: decoded.role,
-    });
-
-    logger.debug('User authenticated (optional)', {
-      userId: decoded.userId,
-      role: decoded.role,
-    });
+      logger.debug('User authenticated (optional)', {
+        userId: payload.userId,
+        role: payload.role,
+      });
+    }
   } catch (error) {
     // Invalid token, but continue anyway since auth is optional
     logger.warn('Invalid token in optional auth', {
@@ -91,16 +96,16 @@ export async function requireAuth(c: Context, next: Next) {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET!) as AccessTokenPayload;
+    const payload = TokenVerifier.verifyAccessToken(token);
 
     c.set('user', {
-      userId: decoded.userId,
-      role: decoded.role,
+      userId: payload.userId,
+      role: payload.role,
     });
 
     logger.debug('User authenticated', {
-      userId: decoded.userId,
-      role: decoded.role,
+      userId: payload.userId,
+      role: payload.role,
     });
 
     await next();

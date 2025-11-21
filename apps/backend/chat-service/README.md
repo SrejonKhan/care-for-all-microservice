@@ -271,7 +271,7 @@ LOG_LEVEL=info
 DATABASE_URL=mongodb://localhost:27017/chat-service
 
 # JWT
-JWT_SECRET=your-secret-key-shared-with-auth-service
+JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
 
 # OpenTelemetry (Optional)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
@@ -396,7 +396,7 @@ chat-service/
 
 **Depends On**:
 - MongoDB (chat-service database)
-- JWT_SECRET (shared with Auth Service)
+- JWT_PUBLIC_KEY (RSA public key for token verification)
 
 ## License
 
