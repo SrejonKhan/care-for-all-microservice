@@ -4,6 +4,7 @@ networks:
 
 volumes:
   postgres-data:
+  mongodb-data:
   rabbitmq-data:
   elasticsearch-data:
   grafana-data:
@@ -28,7 +29,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - AUTH_SERVICE_URL=http://auth-service:3000
+      - AUTH_SERVICE_URL=http://host.docker.internal:4000
       - CAMPAIGN_SERVICE_URL=http://campaign-service:3000
       - DONATION_SERVICE_URL=http://donation-service:3000
       - PAYMENT_SERVICE_URL=http://payment-service:3000
@@ -56,7 +57,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - LOG_LEVEL=info
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - DATABASE_URL=mongodb://mongodb:27017/care_for_all
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
@@ -64,7 +65,7 @@ services:
     networks:
       - care-for-all
     depends_on:
-      - postgres
+      - mongodb
       - rabbitmq
       - otel-collector
 
@@ -169,35 +170,8 @@ services:
       - rabbitmq
       - otel-collector
 
-  admin-frontend:
-    build:
-      context: ..
-      dockerfile: apps/frontend/admin-frontend/Dockerfile
-    container_name: admin-frontend
-    ports:
-      - "3001:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    networks:
-      - care-for-all
-    depends_on:
-      - gateway
-
-  user-frontend:
-    build:
-      context: ..
-      dockerfile: apps/frontend/user-frontend/Dockerfile
-    container_name: user-frontend
-    ports:
-      - "3002:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    networks:
-      - care-for-all
-    depends_on:
-      - gateway
+# Frontend will run locally in development mode
+  # To run frontend locally: cd apps/frontend && npm run dev
 
   # ============================================================================
   # DATA & MESSAGING
@@ -216,6 +190,23 @@ services:
       - care-for-all
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"  # Expose MongoDB to host machine
+    environment:
+      - MONGO_INITDB_DATABASE=care_for_all
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - care-for-all
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -317,7 +308,7 @@ services:
     image: grafana/grafana:10.4.0
     container_name: grafana
     ports:
-      - "3001:3000"
+      - "3003:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
