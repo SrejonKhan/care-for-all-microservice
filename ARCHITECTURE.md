@@ -63,7 +63,7 @@ Care For All is a microservices-based donation platform built for scalability, o
 **Endpoints**:
 - `/api/auth/*` → auth-service
 - `/api/campaigns/*` → campaign-service
-- `/api/pledges/*` → pledge-service
+- `/api/donations/*` → donation-service
 - `/api/payments/*` → payment-service
 - `/api/totals/*` → totals-service
 - `/api/chat/*` → chat-service
@@ -124,12 +124,12 @@ CREATE TABLE campaigns (
 );
 ```
 
-### 4. Pledge Service
-**Purpose**: Pledge state machine
+### 4. Donation Service
+**Purpose**: Donation state machine
 
 **Responsibilities**:
-- Create pledges for campaigns
-- Manage pledge state transitions
+- Create donations for campaigns
+- Manage donation state transitions
 - Validate state machine rules
 - Coordinate with payment service
 
@@ -150,8 +150,8 @@ PENDING → AUTHORIZED → CAPTURED
 - PENDING → FAILED: Initial authorization failed
 
 **Events Published**:
-- `pledge.created`
-- `pledge.state_changed`
+- `donation.created`
+- `donation.state_changed`
 
 **Events Consumed**:
 - `payment.authorized`
@@ -161,7 +161,7 @@ PENDING → AUTHORIZED → CAPTURED
 
 **Database Schema** (TODO):
 ```sql
-CREATE TABLE pledges (
+CREATE TABLE donations (
   id UUID PRIMARY KEY,
   campaign_id UUID NOT NULL REFERENCES campaigns(id),
   user_id UUID NOT NULL,
@@ -197,13 +197,13 @@ CREATE TABLE pledges (
 - `payment.refunded`
 
 **Events Consumed**:
-- `pledge.created` (triggers payment authorization)
+- `donation.created` (triggers payment authorization)
 
 **Database Schema** (TODO):
 ```sql
 CREATE TABLE payments (
   id UUID PRIMARY KEY,
-  pledge_id UUID NOT NULL REFERENCES pledges(id),
+  donation_id UUID NOT NULL REFERENCES donations(id),
   amount DECIMAL(12,2) NOT NULL,
   provider VARCHAR(50) NOT NULL,
   provider_transaction_id VARCHAR(255),
@@ -215,6 +215,7 @@ CREATE TABLE payments (
 );
 
 CREATE INDEX idx_payments_idempotency ON payments(idempotency_key);
+CREATE INDEX idx_payments_donation ON payments(donation_id);
 ```
 
 ### 6. Totals Service
@@ -238,14 +239,14 @@ CREATE INDEX idx_payments_idempotency ON payments(idempotency_key);
 CREATE TABLE campaign_totals (
   campaign_id UUID PRIMARY KEY REFERENCES campaigns(id),
   total_amount DECIMAL(12,2) DEFAULT 0,
-  total_pledges INTEGER DEFAULT 0,
+  total_donations INTEGER DEFAULT 0,
   total_donors INTEGER DEFAULT 0,
   last_updated TIMESTAMP DEFAULT NOW()
 );
 ```
 
 **CQRS Pattern**:
-- Write Model: pledge-service, payment-service
+- Write Model: donation-service, payment-service
 - Read Model: totals-service (this service)
 - Eventually consistent
 
@@ -310,41 +311,41 @@ CREATE TABLE campaign_totals (
 - Service → RabbitMQ → Service(s)
 - Used for: State changes, notifications, eventual consistency
 
-### Event Flow Example: Creating a Pledge
+### Event Flow Example: Creating a Donation
 
 ```
-1. User → Gateway → Pledge Service
-   POST /api/pledges
+1. User → Gateway → Donation Service
+   POST /api/donations
    { campaignId, amount }
 
-2. Pledge Service:
+2. Donation Service:
    - Validates campaign exists
-   - Creates pledge with state=PENDING
+   - Creates donation with state=PENDING
    - Stores in database
-   - Publishes pledge.created event
-   - Returns pledge to user
+   - Publishes donation.created event
+   - Returns donation to user
 
-3. Payment Service (consumes pledge.created):
+3. Payment Service (consumes donation.created):
    - Authorizes payment with provider
    - If success: Publishes payment.authorized
    - If failure: Publishes payment.failed
 
-4. Pledge Service (consumes payment.authorized):
-   - Updates pledge state to AUTHORIZED
-   - Publishes pledge.state_changed event
+4. Donation Service (consumes payment.authorized):
+   - Updates donation state to AUTHORIZED
+   - Publishes donation.state_changed event
 
 5. Payment Service (manual capture or automatic):
    - Captures the authorized payment
    - Publishes payment.captured
 
-6. Pledge Service (consumes payment.captured):
-   - Updates pledge state to CAPTURED
-   - Publishes pledge.state_changed event
+6. Donation Service (consumes payment.captured):
+   - Updates donation state to CAPTURED
+   - Publishes donation.state_changed event
 
 7. Totals Service (consumes payment.captured):
    - Increments campaign total
    - Updates donor count
-   - Updates pledge count
+   - Updates donation count
 ```
 
 ## Data Flow
@@ -471,8 +472,8 @@ Service → stdout (JSON) → Docker logs → Filebeat → Logstash → Elastics
 
 3. Business Metrics
    - Campaigns created
-   - Pledges created
-   - Total donations
+   - Donations created
+   - Total donations amount
    - Active users
 
 4. Database Metrics

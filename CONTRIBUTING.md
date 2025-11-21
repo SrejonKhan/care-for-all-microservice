@@ -90,7 +90,7 @@ care-for-all-microservice/
 │   │   ├── gateway/       # API Gateway
 │   │   ├── auth-service/  # Authentication
 │   │   ├── campaign-service/ # Campaigns
-│   │   ├── pledge-service/   # Pledges
+│   │   ├── donation-service/ # Donations
 │   │   ├── payment-service/  # Payments
 │   │   ├── totals-service/   # Totals
 │   │   └── chat-service/     # Chat

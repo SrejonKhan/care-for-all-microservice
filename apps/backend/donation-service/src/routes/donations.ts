@@ -44,10 +44,10 @@ const ApiResponseSchema = z.object({
 
 export const createPledgeRoute = createRoute({
   method: 'post',
-  path: '/pledges',
-  tags: ['Pledges'],
-  summary: 'Create a new pledge',
-  description: 'Create a new pledge for a campaign',
+  path: '/donations',
+  tags: ['Donations'],
+  summary: 'Create a new donation',
+  description: 'Create a new donation for a campaign',
   request: {
     body: {
       content: {
@@ -59,7 +59,7 @@ export const createPledgeRoute = createRoute({
   },
   responses: {
     201: {
-      description: 'Pledge created successfully',
+      description: 'Donation created successfully',
       content: {
         'application/json': {
           schema: z.object({
@@ -82,10 +82,10 @@ export const createPledgeRoute = createRoute({
 
 export const getPledgeRoute = createRoute({
   method: 'get',
-  path: '/pledges/{id}',
-  tags: ['Pledges'],
-  summary: 'Get pledge by ID',
-  description: 'Retrieve a single pledge by its ID',
+  path: '/donations/{id}',
+  tags: ['Donations'],
+  summary: 'Get donation by ID',
+  description: 'Retrieve a single donation by its ID',
   request: {
     params: z.object({
       id: z.string(),
@@ -93,7 +93,7 @@ export const getPledgeRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'Pledge details',
+      description: 'Donation details',
       content: {
         'application/json': {
           schema: z.object({
@@ -104,7 +104,7 @@ export const getPledgeRoute = createRoute({
       },
     },
     404: {
-      description: 'Pledge not found',
+      description: 'Donation not found',
       content: {
         'application/json': {
           schema: ApiResponseSchema,
@@ -116,10 +116,10 @@ export const getPledgeRoute = createRoute({
 
 export const transitionPledgeStateRoute = createRoute({
   method: 'post',
-  path: '/pledges/{id}/transition',
-  tags: ['Pledges'],
-  summary: 'Transition pledge state',
-  description: 'Change the state of a pledge (e.g., PENDING -> AUTHORIZED -> CAPTURED)',
+  path: '/donations/{id}/transition',
+  tags: ['Donations'],
+  summary: 'Transition donation state',
+  description: 'Change the state of a donation (e.g., PENDING -> AUTHORIZED -> CAPTURED)',
   request: {
     params: z.object({
       id: z.string(),

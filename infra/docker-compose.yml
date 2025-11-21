@@ -30,7 +30,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - AUTH_SERVICE_URL=http://auth-service:3000
       - CAMPAIGN_SERVICE_URL=http://campaign-service:3000
-      - PLEDGE_SERVICE_URL=http://pledge-service:3000
+      - DONATION_SERVICE_URL=http://donation-service:3000
       - PAYMENT_SERVICE_URL=http://payment-service:3000
       - TOTALS_SERVICE_URL=http://totals-service:3000
       - CHAT_SERVICE_URL=http://chat-service:3000
@@ -88,11 +88,11 @@ services:
       - rabbitmq
       - otel-collector
 
-  pledge-service:
+  donation-service:
     build:
       context: ..
-      dockerfile: apps/backend/pledge-service/Dockerfile
-    container_name: pledge-service
+      dockerfile: apps/backend/donation-service/Dockerfile
+    container_name: donation-service
     environment:
       - NODE_ENV=production
       - PORT=3000

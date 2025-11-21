@@ -65,6 +65,25 @@
         "typescript": "^5.7.2",
       },
     },
+    "apps/backend/donation-service": {
+      "name": "@care-for-all/donation-service",
+      "version": "1.0.0",
+      "dependencies": {
+        "@care-for-all/shared-config": "workspace:*",
+        "@care-for-all/shared-logger": "workspace:*",
+        "@care-for-all/shared-otel": "workspace:*",
+        "@care-for-all/shared-rabbitmq": "workspace:*",
+        "@care-for-all/shared-types": "workspace:*",
+        "@hono/zod-openapi": "^0.16.4",
+        "@scalar/hono-api-reference": "^0.5.177",
+        "hono": "^4.6.14",
+        "zod": "^3.23.8",
+      },
+      "devDependencies": {
+        "bun-types": "^1.1.38",
+        "typescript": "^5.7.2",
+      },
+    },
     "apps/backend/gateway": {
       "name": "@care-for-all/gateway",
       "version": "1.0.0",
@@ -85,25 +104,6 @@
     },
     "apps/backend/payment-service": {
       "name": "@care-for-all/payment-service",
-      "version": "1.0.0",
-      "dependencies": {
-        "@care-for-all/shared-config": "workspace:*",
-        "@care-for-all/shared-logger": "workspace:*",
-        "@care-for-all/shared-otel": "workspace:*",
-        "@care-for-all/shared-rabbitmq": "workspace:*",
-        "@care-for-all/shared-types": "workspace:*",
-        "@hono/zod-openapi": "^0.16.4",
-        "@scalar/hono-api-reference": "^0.5.177",
-        "hono": "^4.6.14",
-        "zod": "^3.23.8",
-      },
-      "devDependencies": {
-        "bun-types": "^1.1.38",
-        "typescript": "^5.7.2",
-      },
-    },
-    "apps/backend/pledge-service": {
-      "name": "@care-for-all/pledge-service",
       "version": "1.0.0",
       "dependencies": {
         "@care-for-all/shared-config": "workspace:*",
@@ -256,11 +256,11 @@
 
     "@care-for-all/chat-service": ["@care-for-all/chat-service@workspace:apps/backend/chat-service"],
 
+    "@care-for-all/donation-service": ["@care-for-all/donation-service@workspace:apps/backend/donation-service"],
+
     "@care-for-all/gateway": ["@care-for-all/gateway@workspace:apps/backend/gateway"],
 
     "@care-for-all/payment-service": ["@care-for-all/payment-service@workspace:apps/backend/payment-service"],
-
-    "@care-for-all/pledge-service": ["@care-for-all/pledge-service@workspace:apps/backend/pledge-service"],
 
     "@care-for-all/shared-config": ["@care-for-all/shared-config@workspace:packages/shared-config"],
 

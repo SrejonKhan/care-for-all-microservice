@@ -26,7 +26,7 @@ This single command will start all 21 services including:
 | gateway | 8080 | API Gateway - main entry point |
 | auth-service | 3000 (internal) | Authentication & authorization |
 | campaign-service | 3000 (internal) | Campaign management |
-| pledge-service | 3000 (internal) | Pledge state machine |
+| donation-service | 3000 (internal) | Donation state machine |
 | payment-service | 3000 (internal) | Payment processing |
 | totals-service | 3000 (internal) | Campaign totals (materialized view) |
 | chat-service | 3000 (internal) | Real-time chat with WebSocket |

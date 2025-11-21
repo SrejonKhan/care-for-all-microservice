@@ -9,14 +9,14 @@ import {
   createPledgeRoute,
   getPledgeRoute,
   transitionPledgeStateRoute,
-} from './routes/pledges';
+} from './routes/donations';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 const config = loadConfig({
-  serviceName: 'pledge-service',
+  serviceName: 'donation-service',
   required: {
     database: false, // TODO: Enable when DB is set up
     rabbitmq: false, // TODO: Enable when RabbitMQ is configured
@@ -25,7 +25,7 @@ const config = loadConfig({
 });
 
 const logger = createLogger({
-  serviceName: 'pledge-service',
+  serviceName: 'donation-service',
   minLevel: config.LOG_LEVEL,
   prettyPrint: config.NODE_ENV === 'development',
 });
@@ -33,7 +33,7 @@ const logger = createLogger({
 // Initialize OpenTelemetry
 if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
   initTracing({
-    serviceName: 'pledge-service',
+    serviceName: 'donation-service',
     endpoint: config.OTEL_EXPORTER_OTLP_ENDPOINT,
     enabled: config.OTEL_TRACES_ENABLED,
   });
@@ -49,26 +49,26 @@ const app = new OpenAPIHono();
 app.openapi(healthRoute, (c) => {
   return c.json({
     status: 'healthy',
-    service: 'pledge-service',
+    service: 'donation-service',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
 });
 
-// Pledge routes
+// Donation routes
 app.openapi(createPledgeRoute, async (c) => {
   const body = c.req.valid('json');
   
-  logger.info('Creating pledge', body);
+  logger.info('Creating donation', body);
 
   // TODO: Validate campaign exists
-  // TODO: Insert pledge into database with state PENDING
-  // TODO: Publish PledgeCreatedEvent to RabbitMQ
+  // TODO: Insert donation into database with state PENDING
+  // TODO: Publish DonationCreatedEvent to RabbitMQ
   // TODO: Trigger payment authorization workflow
 
-  const pledge = {
-    id: 'pledge_' + Date.now(),
+  const donation = {
+    id: 'donation_' + Date.now(),
     ...body,
     userId: 'user_123', // TODO: Get from auth context
     state: PledgeState.PENDING,
@@ -79,7 +79,7 @@ app.openapi(createPledgeRoute, async (c) => {
   return c.json(
     {
       success: true,
-      data: pledge,
+      data: donation,
     },
     201
   );
@@ -88,9 +88,9 @@ app.openapi(createPledgeRoute, async (c) => {
 app.openapi(getPledgeRoute, async (c) => {
   const { id } = c.req.valid('param');
   
-  logger.info('Getting pledge', { id });
+  logger.info('Getting donation', { id });
 
-  // TODO: Query pledge from database
+  // TODO: Query donation from database
 
   return c.json({
     success: true,
@@ -110,11 +110,11 @@ app.openapi(transitionPledgeStateRoute, async (c) => {
   const { id } = c.req.valid('param');
   const body = c.req.valid('json');
   
-  logger.info('Transitioning pledge state', { id, newState: body.newState });
+  logger.info('Transitioning donation state', { id, newState: body.newState });
 
   // TODO: Validate state transition (PENDING -> AUTHORIZED -> CAPTURED)
-  // TODO: Update pledge state in database
-  // TODO: Publish PledgeStateChangedEvent to RabbitMQ
+  // TODO: Update donation state in database
+  // TODO: Publish DonationStateChangedEvent to RabbitMQ
 
   return c.json({
     success: true,
@@ -142,9 +142,9 @@ app.get(
 app.doc('/openapi', {
   openapi: '3.1.0',
   info: {
-    title: 'Pledge Service API',
+    title: 'Donation Service API',
     version: '1.0.0',
-    description: 'Pledge state machine service',
+    description: 'Donation state machine service',
   },
 });
 
@@ -154,7 +154,7 @@ app.doc('/openapi', {
 
 const port = config.PORT;
 
-logger.info(`Starting pledge-service on port ${port}`);
+logger.info(`Starting donation-service on port ${port}`);
 
 export default {
   port,

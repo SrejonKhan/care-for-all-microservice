@@ -1,5 +1,5 @@
 {
-  "name": "@care-for-all/pledge-service",
+  "name": "@care-for-all/donation-service",
   "version": "1.0.0",
   "private": true,
   "scripts": {
