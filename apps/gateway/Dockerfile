@@ -4,7 +4,7 @@ WORKDIR /app
 # Install dependencies
 FROM base AS install
 RUN mkdir -p /temp/dev
-COPY package.json bun.lockb /temp/dev/
+COPY package.json bun.lock* /temp/dev/
 COPY packages /temp/dev/packages
 COPY apps/gateway/package.json /temp/dev/apps/gateway/
 RUN cd /temp/dev && bun install --frozen-lockfile

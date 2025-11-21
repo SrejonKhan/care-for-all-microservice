@@ -3,7 +3,7 @@ WORKDIR /app
 
 FROM base AS install
 RUN mkdir -p /temp/dev
-COPY package.json bun.lockb /temp/dev/
+COPY package.json bun.lock* /temp/dev/
 COPY packages /temp/dev/packages
 COPY apps/campaign-service/package.json /temp/dev/apps/campaign-service/
 RUN cd /temp/dev && bun install --frozen-lockfile
