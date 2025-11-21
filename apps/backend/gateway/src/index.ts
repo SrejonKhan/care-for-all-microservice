@@ -9,7 +9,7 @@ import { loggingMiddleware } from "./middleware/logging";
 import { errorHandler } from "./middleware/error";
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION ++
 // ============================================================================
 
 const config = loadConfig({
@@ -41,18 +41,24 @@ if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
 const app = new OpenAPIHono();
 
 // CORS middleware - Allow frontend access
-app.use('*', async (c, next) => {
+app.use("*", async (c, next) => {
   // Set CORS headers
-  c.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  c.header('Access-Control-Allow-Credentials', 'true');
-  
+  c.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  c.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  c.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With"
+  );
+  c.header("Access-Control-Allow-Credentials", "true");
+
   // Handle preflight requests
-  if (c.req.method === 'OPTIONS') {
-    return c.text('', 204);
+  if (c.req.method === "OPTIONS") {
+    return c.text("", 204);
   }
-  
+
   await next();
 });
 
