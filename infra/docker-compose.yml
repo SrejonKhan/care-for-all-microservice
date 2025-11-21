@@ -4,7 +4,12 @@ networks:
 
 volumes:
   postgres-data:
-  mongodb-data:
+  mongodb-primary-data:
+  mongodb-primary-config:
+  mongodb-secondary1-data:
+  mongodb-secondary1-config:
+  mongodb-secondary2-data:
+  mongodb-secondary2-config:
   rabbitmq-data:
   elasticsearch-data:
   grafana-data:
@@ -78,7 +83,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - LOG_LEVEL=info
-      - DATABASE_URL=mongodb://mongodb:27017/care_for_all
+      - DATABASE_URL=mongodb://mongodb-primary:27017/auth-service
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
@@ -86,7 +91,8 @@ services:
     networks:
       - care-for-all
     depends_on:
-      - mongodb
+      mongodb-primary:
+        condition: service_healthy
       - rabbitmq
       - otel-collector
 
@@ -119,7 +125,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - LOG_LEVEL=info
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - DATABASE_URL=mongodb://mongodb-primary:27017,mongodb-secondary1:27017,mongodb-secondary2:27017/donation-service?replicaSet=rs0
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
@@ -127,7 +133,14 @@ services:
     networks:
       - care-for-all
     depends_on:
-      - postgres
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-secondary1:
+        condition: service_healthy
+      mongodb-secondary2:
+        condition: service_healthy
+      mongodb-init:
+        condition: service_completed_successfully
       - rabbitmq
       - otel-collector
 
@@ -227,15 +240,18 @@ services:
       timeout: 5s
       retries: 5
 
-  mongodb:
+  # MongoDB Replica Set - Primary
+  mongodb-primary:
     image: mongo:7.0
-    container_name: mongodb
+    container_name: mongodb-primary
+    command: mongod --replSet rs0 --bind_ip_all
     ports:
-      - "27017:27017"  # Expose MongoDB to host machine
+      - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=care_for_all
     volumes:
-      - mongodb-data:/data/db
+      - mongodb-primary-data:/data/db
+      - mongodb-primary-config:/data/configdb
     networks:
       - care-for-all
     healthcheck:
@@ -243,6 +259,88 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # MongoDB Replica Set - Secondary 1
+  mongodb-secondary1:
+    image: mongo:7.0
+    container_name: mongodb-secondary1
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=care_for_all
+    volumes:
+      - mongodb-secondary1-data:/data/db
+      - mongodb-secondary1-config:/data/configdb
+    networks:
+      - care-for-all
+    depends_on:
+      - mongodb-primary
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB Replica Set - Secondary 2
+  mongodb-secondary2:
+    image: mongo:7.0
+    container_name: mongodb-secondary2
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - "27019:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=care_for_all
+    volumes:
+      - mongodb-secondary2-data:/data/db
+      - mongodb-secondary2-config:/data/configdb
+    networks:
+      - care-for-all
+    depends_on:
+      - mongodb-primary
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB Replica Set Initializer
+  mongodb-init:
+    image: mongo:7.0
+    container_name: mongodb-init
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-secondary1:
+        condition: service_healthy
+      mongodb-secondary2:
+        condition: service_healthy
+    networks:
+      - care-for-all
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo 'Waiting for MongoDB nodes to be ready...' &&
+      sleep 15 &&
+      mongosh --host mongodb-primary:27017 --eval '
+        try {
+          var status = rs.status();
+          print(\"Replica set already initialized\");
+        } catch (err) {
+          print(\"Initializing replica set...\");
+          rs.initiate({
+            _id: \"rs0\",
+            members: [
+              { _id: 0, host: \"mongodb-primary:27017\", priority: 2 },
+              { _id: 1, host: \"mongodb-secondary1:27017\", priority: 1 },
+              { _id: 2, host: \"mongodb-secondary2:27017\", priority: 1 }
+            ]
+          });
+          print(\"Replica set initialized successfully!\");
+        }
+      ' &&
+      echo 'Replica set initialization complete'
+      "
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine

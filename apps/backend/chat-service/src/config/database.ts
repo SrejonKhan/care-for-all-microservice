@@ -7,7 +7,7 @@ import { createLogger } from '@care-for-all/shared-logger';
 // ============================================================================
 
 const config = loadConfig({
-  serviceName: 'donation-service',
+  serviceName: 'chat-service',
   required: {
     database: true,
     rabbitmq: false,
@@ -16,7 +16,7 @@ const config = loadConfig({
 });
 
 const logger = createLogger({
-  serviceName: 'donation-service',
+  serviceName: 'chat-service',
   minLevel: config.LOG_LEVEL,
   prettyPrint: config.NODE_ENV === 'development',
 });
@@ -28,8 +28,7 @@ const logger = createLogger({
 let isConnected = false;
 
 /**
- * Connect to MongoDB with replica set support
- * Donation Service requires replica set for transactions (Outbox pattern)
+ * Connect to MongoDB
  */
 export async function connectDatabase(): Promise<void> {
   if (isConnected) {
@@ -48,16 +47,11 @@ export async function connectDatabase(): Promise<void> {
       url: dbUrl.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@'), // Mask credentials
     });
 
-    // Connect with replica set support
     await mongoose.connect(dbUrl, {
       maxPoolSize: 10,
       minPoolSize: 2,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      // Replica set specific options
-      readPreference: 'primary',
-      w: 'majority',
-      retryWrites: true,
     });
 
     isConnected = true;
@@ -89,17 +83,22 @@ export async function connectDatabase(): Promise<void> {
   }
 }
 
+/**
+ * Disconnect from MongoDB
+ */
 export async function disconnectDatabase(): Promise<void> {
   if (!isConnected) {
     return;
   }
 
   try {
-    await mongoose.disconnect();
+    await mongoose.connection.close();
     isConnected = false;
-    logger.info('MongoDB disconnected successfully');
+    logger.info('MongoDB disconnected');
   } catch (error) {
-    logger.error('Error disconnecting from MongoDB', error);
+    logger.error('Error disconnecting from MongoDB', {
+      error: (error as Error).message,
+    });
     throw error;
   }
 }
@@ -161,20 +160,4 @@ export function getDatabaseStatus(): {
     dbName: mongoose.connection.name,
   };
 }
-
-// ============================================================================
-// GRACEFUL SHUTDOWN
-// ============================================================================
-
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received, closing database connection');
-  await disconnectDatabase();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, closing database connection');
-  await disconnectDatabase();
-  process.exit(0);
-});
 
