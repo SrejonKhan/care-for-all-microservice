@@ -1,13 +1,24 @@
 import mongoose from 'mongoose';
+import { loadConfig } from '@care-for-all/shared-config';
 import { createLogger } from '@care-for-all/shared-logger';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
+const config = loadConfig({
+  serviceName: 'donation-service',
+  required: {
+    database: true,
+    rabbitmq: false,
+    otel: false,
+  },
+});
+
 const logger = createLogger({
   serviceName: 'donation-service',
-  minLevel: 'info',
+  minLevel: config.LOG_LEVEL,
+  prettyPrint: config.NODE_ENV === 'development',
 });
 
 // ============================================================================
@@ -16,32 +27,49 @@ const logger = createLogger({
 
 let isConnected = false;
 
+/**
+ * Connect to MongoDB with replica set support
+ * Donation Service requires replica set for transactions (Outbox pattern)
+ */
 export async function connectDatabase(): Promise<void> {
   if (isConnected) {
-    logger.info('Using existing database connection');
+    logger.info('Database already connected');
     return;
   }
 
-  const databaseUrl = process.env.DATABASE_URL;
-
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required but not provided');
-  }
-
   try {
-    await mongoose.connect(databaseUrl, {
+    const dbUrl = config.DATABASE_URL;
+
+    if (!dbUrl) {
+      throw new Error('DATABASE_URL is required');
+    }
+
+    logger.info('Connecting to MongoDB...', {
+      url: dbUrl.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@'), // Mask credentials
+    });
+
+    // Connect with replica set support
+    await mongoose.connect(dbUrl, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      // Replica set specific options
+      readPreference: 'primary',
+      w: 'majority',
+      retryWrites: true,
     });
 
     isConnected = true;
+
     logger.info('MongoDB connected successfully', {
-      database: mongoose.connection.name,
+      host: mongoose.connection.host,
+      dbName: mongoose.connection.name,
     });
 
     // Handle connection events
-    mongoose.connection.on('error', (error) => {
-      logger.error('MongoDB connection error', error);
+    mongoose.connection.on('error', (error: Error) => {
+      logger.error('MongoDB connection error', { error: error.message });
     });
 
     mongoose.connection.on('disconnected', () => {
@@ -54,7 +82,9 @@ export async function connectDatabase(): Promise<void> {
       isConnected = true;
     });
   } catch (error) {
-    logger.error('Failed to connect to MongoDB', error);
+    logger.error('Failed to connect to MongoDB', {
+      error: (error as Error).message,
+    });
     throw error;
   }
 }
@@ -74,19 +104,62 @@ export async function disconnectDatabase(): Promise<void> {
   }
 }
 
-export async function checkDatabaseHealth(): Promise<boolean> {
+/**
+ * Check database health
+ */
+export async function checkDatabaseHealth(): Promise<{
+  healthy: boolean;
+  message: string;
+  details?: any;
+}> {
   try {
-    if (!isConnected) {
-      return false;
+    if (!isConnected || mongoose.connection.readyState !== 1) {
+      return {
+        healthy: false,
+        message: 'Database not connected',
+        details: {
+          readyState: mongoose.connection.readyState,
+        },
+      };
     }
 
     // Ping the database
-    await mongoose.connection.db.admin().ping();
-    return true;
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.admin().ping();
+    }
+
+    return {
+      healthy: true,
+      message: 'Database is healthy',
+      details: {
+        host: mongoose.connection.host,
+        dbName: mongoose.connection.name,
+        readyState: mongoose.connection.readyState,
+      },
+    };
   } catch (error) {
-    logger.error('Database health check failed', error);
-    return false;
+    return {
+      healthy: false,
+      message: (error as Error).message,
+    };
   }
+}
+
+/**
+ * Get database connection status
+ */
+export function getDatabaseStatus(): {
+  isConnected: boolean;
+  readyState: number;
+  host?: string;
+  dbName?: string;
+} {
+  return {
+    isConnected,
+    readyState: mongoose.connection.readyState,
+    host: mongoose.connection.host,
+    dbName: mongoose.connection.name,
+  };
 }
 
 // ============================================================================

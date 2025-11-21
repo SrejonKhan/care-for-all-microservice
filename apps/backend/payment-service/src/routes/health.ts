@@ -1,28 +1,27 @@
-import { createRoute } from '@hono/zod-openapi';
-import { z } from 'zod';
+import { createRoute, z } from '@hono/zod-openapi';
 
-const HealthCheckResponseSchema = z.object({
-  status: z.enum(['healthy', 'unhealthy', 'degraded']),
-  service: z.string(),
-  version: z.string(),
-  timestamp: z.string(),
-  uptime: z.number(),
-});
+// ============================================================================
+// HEALTH CHECK ROUTE
+// ============================================================================
 
 export const healthRoute = createRoute({
   method: 'get',
   path: '/health',
-  tags: ['System'],
-  summary: 'Health check endpoint',
+  tags: ['Health'],
   responses: {
     200: {
       description: 'Service is healthy',
       content: {
         'application/json': {
-          schema: HealthCheckResponseSchema,
+          schema: z.object({
+            status: z.string(),
+            service: z.string(),
+            version: z.string(),
+            timestamp: z.string(),
+            uptime: z.number(),
+          }),
         },
       },
     },
   },
 });
-

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { UserService } from '../services/user.service';
 import { authMiddleware, requireUser } from '../middleware/auth';

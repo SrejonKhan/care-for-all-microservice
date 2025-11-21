@@ -1,13 +1,20 @@
 {
   "name": "@care-for-all/payment-service",
   "version": "1.0.0",
-  "description": "Payment processing with idempotency",
+  "description": "Payment processing with idempotency and state machine",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
+    "dev:payment-worker": "bun --watch src/worker.ts",
+    "dev:payment-worker:local": "bun --env-file=.env.local --watch src/worker.ts",
     "start": "bun src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start:payment-worker": "bun src/worker.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun && bun build src/worker.ts --outdir dist --target bun",
+    "build:payment-worker": "bun build src/worker.ts --outdir dist --target bun",
     "test": "bun test",
+    "dev:local": "bun --env-file=.env.local --watch src/index.ts",
+    "start:local": "bash start-local.sh",
+    "test:local": "bash test-local.sh",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -19,10 +26,13 @@
     "@care-for-all/shared-config": "workspace:*",
     "@care-for-all/shared-logger": "workspace:*",
     "@care-for-all/shared-rabbitmq": "workspace:*",
-    "@care-for-all/shared-otel": "workspace:*"
+    "@care-for-all/shared-otel": "workspace:*",
+    "mongoose": "^8.8.4",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "bun-types": "^1.1.38",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@types/jsonwebtoken": "^9.0.7"
   }
 }

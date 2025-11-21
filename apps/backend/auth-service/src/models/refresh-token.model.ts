@@ -5,7 +5,6 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 // ============================================================================
 
 export interface IRefreshToken extends Document {
-  _id: string;
   userId: string;
   tokenHash: string;
   expiresAt: Date;
@@ -45,16 +44,16 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
+        delete (ret as any)._id;
+        delete (ret as any).__v;
         return ret;
       },
     },
     toObject: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
+        delete (ret as any)._id;
+        delete (ret as any).__v;
         return ret;
       },
     },

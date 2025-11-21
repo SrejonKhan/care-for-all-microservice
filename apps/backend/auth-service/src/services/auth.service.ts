@@ -218,7 +218,7 @@ export class AuthService {
             logger.info('User logged out successfully', { userId: payload.userId });
         } catch (error) {
             // Even if token is invalid, we consider logout successful
-            logger.warn('Logout with invalid token', error);
+            logger.warn('Logout with invalid token', { error: (error as Error).message });
         }
     }
 

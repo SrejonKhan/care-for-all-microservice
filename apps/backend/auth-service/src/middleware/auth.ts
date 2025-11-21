@@ -66,7 +66,7 @@ export async function authMiddleware(c: Context, next: Next) {
         const token = parts[1];
 
         // Verify token
-        const payload = TokenService.verifyAccessToken(token);
+        const payload = TokenService.verifyAccessToken(token!);
 
         // Store user info in context
         c.set('user', payload);
@@ -115,7 +115,7 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
             if (parts.length === 2 && parts[0] === 'Bearer') {
                 const token = parts[1];
                 try {
-                    const payload = TokenService.verifyAccessToken(token);
+                    const payload = TokenService.verifyAccessToken(token!);
                     c.set('user', payload);
                 } catch (error) {
                     // Ignore token errors in optional auth

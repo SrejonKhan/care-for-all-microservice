@@ -5,9 +5,16 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
+    "dev:totals-worker": "bun --watch src/worker.ts",
+    "dev:totals-worker:local": "bun --env-file=.env.local --watch src/worker.ts",
     "start": "bun src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start:totals-worker": "bun src/worker.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun && bun build src/worker.ts --outdir dist --target bun",
+    "build:totals-worker": "bun build src/worker.ts --outdir dist --target bun",
     "test": "bun test",
+    "dev:local": "bun --env-file=.env.local --watch src/index.ts",
+    "start:local": "bash start-local.sh",
+    "test:local": "bash test-local.sh",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -19,10 +26,13 @@
     "@care-for-all/shared-config": "workspace:*",
     "@care-for-all/shared-logger": "workspace:*",
     "@care-for-all/shared-rabbitmq": "workspace:*",
-    "@care-for-all/shared-otel": "workspace:*"
+    "@care-for-all/shared-otel": "workspace:*",
+    "mongoose": "^8.8.4",
+    "amqplib": "^0.10.4"
   },
   "devDependencies": {
     "bun-types": "^1.1.38",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@types/amqplib": "^0.10.5"
   }
 }

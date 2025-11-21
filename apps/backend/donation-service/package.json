@@ -5,15 +5,16 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "dev:worker": "bun --watch src/worker.ts",
+    "dev:donation-worker": "bun --watch src/worker.ts",
+    "dev:donation-worker:local": "bun --env-file=.env.local --watch src/worker.ts",
     "start": "bun src/index.ts",
-    "start:worker": "bun src/worker.ts",
+    "start:donation-worker": "bun src/worker.ts",
     "build": "bun build src/index.ts --outdir dist --target bun && bun build src/worker.ts --outdir dist --target bun",
-    "build:worker": "bun build src/worker.ts --outdir dist --target bun",
+    "build:donation-worker": "bun build src/worker.ts --outdir dist --target bun",
     "test": "bun test",
-    "dev:local": "NODE_ENV=development DATABASE_URL=mongodb://localhost:27017/donation-service RABBITMQ_URL=amqp://localhost:5672 bun --watch src/index.ts",
-    "start:local": "NODE_ENV=production DATABASE_URL=mongodb://localhost:27017/donation-service RABBITMQ_URL=amqp://localhost:5672 bun src/index.ts",
-    "test:local": "DATABASE_URL=mongodb://localhost:27017/donation-service-test bun test",
+    "dev:local": "bun --env-file=.env.local --watch src/index.ts",
+    "start:local": "bash start-local.sh",
+    "test:local": "bash test-local.sh",
     "clean": "rm -rf dist"
   },
   "dependencies": {

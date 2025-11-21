@@ -15,7 +15,6 @@ export enum UserRole {
 // ============================================================================
 
 export interface IUser extends Document {
-  _id: string;
   email: string | null;
   passwordHash: string | null;
   name: string;
@@ -67,17 +66,17 @@ const userSchema = new Schema<IUser>(
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        delete ret.passwordHash; // Never expose password hash
+        delete (ret as any)._id;
+        delete (ret as any).__v;
+        delete (ret as any).passwordHash; // Never expose password hash
         return ret;
       },
     },
     toObject: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
+        delete (ret as any)._id;
+        delete (ret as any).__v;
         return ret;
       },
     },
