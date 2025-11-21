@@ -4,12 +4,9 @@ import { loadConfig } from '@care-for-all/shared-config';
 import { createLogger } from '@care-for-all/shared-logger';
 import { initTracing } from '@care-for-all/shared-otel';
 import { healthRoute } from './routes/health';
-import {
-  listCampaignsRoute,
-  getCampaignRoute,
-  createCampaignRoute,
-  updateCampaignRoute,
-} from './routes/campaigns';
+import { campaignRoutes } from './routes/campaigns';
+import { connectDatabase, checkDatabaseHealth, disconnectDatabase } from './config/database';
+import { initializeRabbitMQ, closeRabbitMQ } from './config/rabbitmq';
 
 // ============================================================================
 // CONFIGURATION
@@ -18,8 +15,8 @@ import {
 const config = loadConfig({
   serviceName: 'campaign-service',
   required: {
-    database: false, // TODO: Enable when DB is set up
-    rabbitmq: false, // TODO: Enable when RabbitMQ is configured
+    database: true,
+    rabbitmq: false, // Optional for API service (required for worker)
     otel: false,
   },
 });
@@ -37,6 +34,7 @@ if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
     endpoint: config.OTEL_EXPORTER_OTLP_ENDPOINT,
     enabled: config.OTEL_TRACES_ENABLED,
   });
+  logger.info('OpenTelemetry tracing initialized');
 }
 
 // ============================================================================
@@ -45,112 +43,68 @@ if (config.OTEL_EXPORTER_OTLP_ENDPOINT) {
 
 const app = new OpenAPIHono();
 
-// Health check
-app.openapi(healthRoute, (c) => {
+// CORS middleware (if needed for development)
+app.use('*', async (c, next) => {
+  if (config.NODE_ENV === 'development') {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (c.req.method === 'OPTIONS') {
+      return new Response('', { status: 204 });
+    }
+  }
+  await next();
+});
+
+// Request logging middleware
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  const method = c.req.method;
+  const path = c.req.path;
+
+  await next();
+
+  const duration = Date.now() - start;
+  const status = c.res.status;
+
+  logger.info('Request completed', {
+    method,
+    path,
+    status,
+    duration: `${duration}ms`,
+  });
+});
+
+// ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+app.openapi(healthRoute, async (c) => {
+  const dbHealthy = await checkDatabaseHealth();
+
   return c.json({
-    status: 'healthy',
+    status: dbHealthy ? 'healthy' : 'degraded',
     service: 'campaign-service',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    database: dbHealthy ? 'connected' : 'disconnected',
   });
 });
 
-// Campaign routes
-app.openapi(listCampaignsRoute, async (c) => {
-  const query = c.req.valid('query');
-  
-  logger.info('Listing campaigns', query);
+// ============================================================================
+// API ROUTES
+// ============================================================================
 
-  // TODO: Query campaigns from database
-  // - Apply filters (status, ownerId)
-  // - Implement pagination
-  // - Order by creation date
+// Mount campaign routes
+app.route('/', campaignRoutes);
 
-  return c.json({
-    success: true,
-    data: {
-      items: [],
-      total: 0,
-      page: query.page,
-      pageSize: query.pageSize,
-      totalPages: 0,
-    },
-  });
-});
+// ============================================================================
+// API DOCUMENTATION
+// ============================================================================
 
-app.openapi(getCampaignRoute, async (c) => {
-  const { id } = c.req.valid('param');
-  
-  logger.info('Getting campaign', { id });
-
-  // TODO: Query campaign from database
-
-  return c.json({
-    success: true,
-    data: {
-      id,
-      title: 'Mock Campaign',
-      description: 'This is a mock campaign',
-      goalAmount: 10000,
-      currentAmount: 0,
-      status: 'ACTIVE',
-      ownerId: 'user_123',
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  });
-});
-
-app.openapi(createCampaignRoute, async (c) => {
-  const body = c.req.valid('json');
-  
-  logger.info('Creating campaign', { title: body.title });
-
-  // TODO: Insert campaign into database
-  // TODO: Publish CampaignCreatedEvent to RabbitMQ
-
-  const campaign = {
-    id: 'camp_' + Date.now(),
-    ...body,
-    currentAmount: 0,
-    status: 'DRAFT' as const,
-    ownerId: 'user_123', // TODO: Get from auth context
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  return c.json(
-    {
-      success: true,
-      data: campaign,
-    },
-    201
-  );
-});
-
-app.openapi(updateCampaignRoute, async (c) => {
-  const { id } = c.req.valid('param');
-  const body = c.req.valid('json');
-  
-  logger.info('Updating campaign', { id, updates: body });
-
-  // TODO: Update campaign in database
-  // TODO: Publish CampaignUpdatedEvent to RabbitMQ
-
-  return c.json({
-    success: true,
-    data: {
-      id,
-      ...body,
-      updatedAt: new Date().toISOString(),
-    },
-  });
-});
-
-// API Documentation
+// API Documentation UI
 app.get(
   '/docs',
   apiReference({
@@ -167,20 +121,91 @@ app.doc('/openapi', {
   info: {
     title: 'Campaign Service API',
     version: '1.0.0',
-    description: 'Campaign management service',
+    description: 'Campaign management service for CareForAll platform',
   },
+  servers: [
+    {
+      url: 'http://localhost:3001',
+      description: 'Development server',
+    },
+    {
+      url: 'http://campaign-service:3001',
+      description: 'Docker internal',
+    },
+  ],
+});
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+app.onError((err, c) => {
+  logger.error('Unhandled error', err);
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred',
+      },
+    },
+    500
+  );
 });
 
 // ============================================================================
 // START SERVER
 // ============================================================================
 
-const port = config.PORT;
+const port = config.PORT || 3001;
 
-logger.info(`Starting campaign-service on port ${port}`);
+// ============================================================================
+// DATABASE & RABBITMQ CONNECTION
+// ============================================================================
+
+// Connect to MongoDB before starting server
+connectDatabase()
+  .then(async () => {
+    logger.info(`Starting campaign-service on port ${port}`);
+    logger.info(`Environment: ${config.NODE_ENV}`);
+    logger.info(`Database: MongoDB connected`);
+
+    // Initialize RabbitMQ (optional for API service)
+    if (config.RABBITMQ_URL) {
+      try {
+        await initializeRabbitMQ();
+        logger.info(`RabbitMQ: connected`);
+      } catch (error) {
+        logger.warn('RabbitMQ connection failed (non-critical for API service)', error as Record<string, unknown>);
+      }
+    } else {
+      logger.info(`RabbitMQ: not configured (events will not be published)`);
+    }
+
+    logger.info(`OpenTelemetry: ${config.OTEL_EXPORTER_OTLP_ENDPOINT ? 'enabled' : 'disabled'}`);
+    logger.info(`Swagger docs available at http://localhost:${port}/docs`);
+  })
+  .catch((error) => {
+    logger.error('Failed to connect to database', error);
+    process.exit(1);
+  });
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully...');
+  await closeRabbitMQ();
+  await disconnectDatabase();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully...');
+  await closeRabbitMQ();
+  await disconnectDatabase();
+  process.exit(0);
+});
 
 export default {
   port,
   fetch: app.fetch,
 };
-

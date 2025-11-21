@@ -181,16 +181,39 @@ bun run docker --filter=...[origin/main]
 
 ## 🔄 CI/CD
 
-The GitHub Actions workflow (`.github/workflows/ci.yml`) automatically:
+### Continuous Integration (CI)
 
-1. **On Pull Request**: Tests and builds only changed services
-2. **On Push to Main**: Runs full test suite and builds
+The CI pipeline (`.github/workflows/ci.yml`) automatically:
 
-Using Turborepo's intelligent caching and filtering:
+1. **Detects Changed Services**: Only tests/builds affected microservices
+2. **Runs Tests**: Parallel testing for changed services
+3. **Builds Services**: TypeScript compilation + Docker images
+4. **Semantic Versioning**: Tags images with version from package.json
+5. **Branch Protection**: CI must pass before merging
+
+### Continuous Deployment (CD)
+
+The CD pipeline (`.github/workflows/cd.yml`) automatically:
+
+1. **Deploys to Digital Ocean**: After CI passes on main branch
+2. **Zero-Downtime**: Rolling updates with Docker Compose
+3. **Health Checks**: Verifies all services are running
+4. **Rollback Support**: Manual rollback capability
+
+### Quick Start
+
 ```bash
-turbo run test --filter=...[base_sha]
-turbo run build --filter=...[base_sha]
+# CI triggers automatically on PR/push
+git push origin main
+
+# Manual deployment
+# Go to Actions → CD - Continuous Deployment → Run workflow
+
+# Version bump
+# Go to Actions → Version Bump → Run workflow
 ```
+
+📚 **Full CI/CD Documentation**: See [CI_CD_SETUP.md](./CI_CD_SETUP.md)
 
 ## 🛠️ API Documentation
 
@@ -272,6 +295,22 @@ This repository provides a complete scaffold. The following business logic needs
 ## 🤝 Contributing
 
 This is a hackathon project. Contributions welcome!
+
+## 🎯 Hackathon Checkpoints Status
+
+| Checkpoint | Status | Documentation |
+|------------|--------|---------------|
+| **1. Architecture & Design** | ✅ Complete | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| **2. Core Implementation** | ✅ Complete | [README.md](./README.md) (this file) |
+| **3. Observability** | ✅ Complete | [infra/README.md](./infra/README.md) |
+| **4. CI/CD Pipeline** | ✅ Complete | [CI_CD_SETUP.md](./CI_CD_SETUP.md) |
+
+### Additional Documentation
+
+- 📚 [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Digital Ocean deployment
+- 🎤 [HACKATHON_DEMO.md](./HACKATHON_DEMO.md) - Demo script for judges
+- 📊 [CHECKPOINT_4_SUMMARY.md](./CHECKPOINT_4_SUMMARY.md) - CI/CD compliance
+- 🤝 [CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
 
 ## 📄 License
 

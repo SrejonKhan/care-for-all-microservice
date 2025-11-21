@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/chat-service",
   "version": "1.0.0",
+  "description": "Real-time chat service with WebSocket",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
