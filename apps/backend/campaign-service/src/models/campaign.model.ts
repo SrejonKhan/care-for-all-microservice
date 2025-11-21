@@ -69,7 +69,6 @@ const campaignSchema = new Schema<ICampaign>(
     ownerId: {
       type: String,
       required: true,
-      index: true,
     },
     startDate: {
       type: Date,

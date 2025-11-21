@@ -18,12 +18,18 @@ This single command will start all 21 services including:
 
 ## Services Overview
 
+### Reverse Proxy (1)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| nginx | 80 | Reverse proxy - main entry point |
+
 ### Application Services (8)
 
 **Backend Services:**
 | Service | Port | Description |
 |---------|------|-------------|
-| gateway | 8080 | API Gateway - main entry point |
+| gateway | 3000 (internal) | API Gateway |
 | auth-service | 3000 (internal) | Authentication & authorization |
 | campaign-service | 3000 (internal) | Campaign management |
 | donation-service | 3000 (internal) | Donation state machine |
@@ -34,7 +40,7 @@ This single command will start all 21 services including:
 **Frontend:**
 | Service | Port | Description |
 |---------|------|-------------|
-| admin-frontend | 3002 | Admin panel UI |
+| admin-frontend | 80 (internal) | Admin panel UI |
 
 ### Data & Messaging (2)
 

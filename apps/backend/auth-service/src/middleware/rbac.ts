@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../models/user.model';
 import { requireUser } from './auth';
 import { createLogger } from '@care-for-all/shared-logger';
 

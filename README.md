@@ -65,9 +65,10 @@ docker compose up --build
 ```
 
 This single command starts:
+- Nginx reverse proxy (single entry point)
 - All 7 microservices
-- Admin frontend
-- PostgreSQL + RabbitMQ
+- Next.js frontend
+- PostgreSQL + MongoDB + RabbitMQ
 - Complete observability stack (11 services)
 
 ### Development Mode (Local)
@@ -89,9 +90,10 @@ Once `docker compose up` is running, access the following UIs:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Gateway API** | http://localhost:8080 | Main API Gateway |
-| **Gateway Docs** | http://localhost:8080/docs | Interactive API documentation (Scalar) |
-| **Admin Frontend** | http://localhost:3002 | Admin panel |
+| **Application** | http://localhost | Main entry point (nginx) |
+| **API** | http://localhost/api | API Gateway (via nginx) |
+| **API Docs** | http://localhost/docs | Interactive API documentation (Scalar) |
+| **Admin Panel** | http://localhost/admin | Admin panel |
 | **Grafana** | http://localhost:3001 | Metrics dashboards (login: admin/admin) |
 | **Prometheus** | http://localhost:9090 | Metrics exploration |
 | **Jaeger** | http://localhost:16686 | Distributed tracing |
@@ -100,9 +102,22 @@ Once `docker compose up` is running, access the following UIs:
 | **RabbitMQ UI** | http://localhost:15672 | Message broker UI (guest/guest) |
 | **cAdvisor** | http://localhost:8080 | Container metrics |
 
-## 🔍 Service URLs (Internal Docker Network)
+## 🔍 Service URLs
+
+### Public URLs (via Nginx)
 
 ```
+Application:   http://localhost       → Admin Frontend
+Admin Panel:   http://localhost/admin → Admin Frontend
+API:           http://localhost/api   → Gateway → Microservices
+API Docs:      http://localhost/docs  → Gateway API Documentation
+Health Check:  http://localhost/health → Gateway Health
+```
+
+### Internal Docker Network
+
+```
+nginx:            http://nginx:80
 gateway:          http://gateway:3000
 auth-service:     http://auth-service:3000
 campaign-service: http://campaign-service:3000
@@ -110,6 +125,7 @@ donation-service: http://donation-service:3000
 payment-service:  http://payment-service:3000
 totals-service:   http://totals-service:3000
 chat-service:     http://chat-service:3000
+admin-frontend:   http://admin-frontend:80
 ```
 
 ## 🏗️ Project Structure
