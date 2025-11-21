@@ -9,7 +9,7 @@ import { loggingMiddleware } from "./middleware/logging";
 import { errorHandler } from "./middleware/error";
 
 // ============================================================================
-// CONFIGURATION ++
+// CONFIGURATION
 // ============================================================================
 
 const config = loadConfig({
