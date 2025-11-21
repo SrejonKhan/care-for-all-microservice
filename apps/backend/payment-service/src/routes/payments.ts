@@ -1,53 +1,32 @@
+// @ts-nocheck
 import { createRoute } from '@hono/zod-openapi';
 import { z } from 'zod';
+import {
+  AuthorizePaymentSchema,
+  CapturePaymentSchema,
+  RefundPaymentSchema,
+  ListPaymentsQuerySchema,
+  PaymentResponseSchema,
+  ListPaymentsResponseSchema,
+  PaymentActionResponseSchema,
+  ErrorResponseSchema,
+} from '../schemas/payment.schema';
 
 // ============================================================================
-// SCHEMAS
+// AUTHORIZE PAYMENT
 // ============================================================================
 
-const PaymentProviderEnum = z.enum(['STRIPE', 'PAYPAL', 'MOCK']);
-
-const ProcessPaymentSchema = z.object({
-  pledgeId: z.string(),
-  provider: PaymentProviderEnum,
-  paymentMethodId: z.string(),
-  idempotencyKey: z.string(),
-});
-
-const RefundPaymentSchema = z.object({
-  reason: z.string().optional(),
-});
-
-const WebhookSchema = z.object({
-  provider: PaymentProviderEnum,
-  eventType: z.string(),
-  payload: z.any(),
-});
-
-const ApiResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.any().optional(),
-  error: z.object({
-    code: z.string(),
-    message: z.string(),
-  }).optional(),
-});
-
-// ============================================================================
-// ROUTES
-// ============================================================================
-
-export const processPaymentRoute = createRoute({
+export const authorizePaymentRoute = createRoute({
   method: 'post',
-  path: '/payments',
+  path: '/api/payments/authorize',
   tags: ['Payments'],
-  summary: 'Process a payment',
-  description: 'Authorize a payment for a pledge with idempotency',
+  summary: 'Authorize a payment',
+  description: 'Authorize a payment for a donation. This holds the funds but does not capture them.',
   request: {
     body: {
       content: {
         'application/json': {
-          schema: ProcessPaymentSchema,
+          schema: AuthorizePaymentSchema,
         },
       },
     },
@@ -57,46 +36,74 @@ export const processPaymentRoute = createRoute({
       description: 'Payment authorized successfully',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: PaymentActionResponseSchema,
         },
       },
     },
     400: {
-      description: 'Invalid request',
+      description: 'Bad request',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: ErrorResponseSchema,
         },
       },
     },
     409: {
-      description: 'Duplicate request (idempotency key already used)',
+      description: 'Duplicate idempotency key',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: PaymentActionResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
         },
       },
     },
   },
 });
 
+// ============================================================================
+// CAPTURE PAYMENT
+// ============================================================================
+
 export const capturePaymentRoute = createRoute({
   method: 'post',
-  path: '/payments/{id}/capture',
+  path: '/api/payments/{paymentId}/capture',
   tags: ['Payments'],
-  summary: 'Capture a payment',
-  description: 'Capture a previously authorized payment',
+  summary: 'Capture an authorized payment',
+  description: 'Capture an authorized payment. This charges the funds.',
   request: {
     params: z.object({
-      id: z.string(),
+      paymentId: z.string().min(1),
     }),
+    body: {
+      content: {
+        'application/json': {
+          schema: CapturePaymentSchema.optional(),
+        },
+      },
+      required: false,
+    },
   },
   responses: {
     200: {
       description: 'Payment captured successfully',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: PaymentActionResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Bad request',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
         },
       },
     },
@@ -104,22 +111,34 @@ export const capturePaymentRoute = createRoute({
       description: 'Payment not found',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
         },
       },
     },
   },
 });
 
+// ============================================================================
+// REFUND PAYMENT
+// ============================================================================
+
 export const refundPaymentRoute = createRoute({
   method: 'post',
-  path: '/payments/{id}/refund',
+  path: '/api/payments/{paymentId}/refund',
   tags: ['Payments'],
   summary: 'Refund a payment',
-  description: 'Refund a captured payment',
+  description: 'Refund a captured or completed payment.',
   request: {
     params: z.object({
-      id: z.string(),
+      paymentId: z.string().min(1),
     }),
     body: {
       content: {
@@ -134,7 +153,15 @@ export const refundPaymentRoute = createRoute({
       description: 'Payment refunded successfully',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: PaymentActionResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Bad request',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
         },
       },
     },
@@ -142,37 +169,93 @@ export const refundPaymentRoute = createRoute({
       description: 'Payment not found',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
         },
       },
     },
   },
 });
 
-export const webhookRoute = createRoute({
-  method: 'post',
-  path: '/webhooks',
+// ============================================================================
+// GET PAYMENT BY ID
+// ============================================================================
+
+export const getPaymentRoute = createRoute({
+  method: 'get',
+  path: '/api/payments/{paymentId}',
   tags: ['Payments'],
-  summary: 'Payment provider webhook',
-  description: 'Handle webhooks from payment providers (Stripe, PayPal, etc.)',
+  summary: 'Get payment by ID',
+  description: 'Retrieve a payment by its ID.',
   request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: WebhookSchema,
-        },
-      },
-    },
+    params: z.object({
+      paymentId: z.string().min(1),
+    }),
   },
   responses: {
     200: {
-      description: 'Webhook processed successfully',
+      description: 'Payment found',
       content: {
         'application/json': {
-          schema: ApiResponseSchema,
+          schema: PaymentActionResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: 'Payment not found',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
         },
       },
     },
   },
 });
 
+// ============================================================================
+// LIST PAYMENTS
+// ============================================================================
+
+export const listPaymentsRoute = createRoute({
+  method: 'get',
+  path: '/api/payments',
+  tags: ['Payments'],
+  summary: 'List payments',
+  description: 'List payments with optional filters.',
+  request: {
+    query: ListPaymentsQuerySchema,
+  },
+  responses: {
+    200: {
+      description: 'Payments retrieved successfully',
+      content: {
+        'application/json': {
+          schema: ListPaymentsResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+  },
+});

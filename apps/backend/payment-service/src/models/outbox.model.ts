@@ -1,46 +1,81 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 // ============================================================================
+// ENUMS
+// ============================================================================
+
+export enum OutboxStatus {
+  PENDING = 'PENDING',
+  PUBLISHED = 'PUBLISHED',
+  FAILED = 'FAILED',
+}
+
+// ============================================================================
 // INTERFACES
 // ============================================================================
 
-export interface IRefreshToken extends Document {
-  userId: string;
-  tokenHash: string;
-  expiresAt: Date;
-  revoked: boolean;
+export interface IOutbox extends Document {
+  eventId: string;
+  eventType: string;
+  routingKey: string;
+  payload: any;
+  status: OutboxStatus;
+  retryCount: number;
+  maxRetries: number;
+  lastError?: string;
+  publishedAt?: Date;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 // ============================================================================
 // SCHEMA
 // ============================================================================
 
-const refreshTokenSchema = new Schema<IRefreshToken>(
+const outboxSchema = new Schema<IOutbox>(
   {
-    userId: {
+    eventId: {
       type: String,
       required: true,
-      ref: 'User',
+      unique: true,
+      index: true,
     },
-    tokenHash: {
+    eventType: {
       type: String,
       required: true,
       index: true,
     },
-    expiresAt: {
+    routingKey: {
+      type: String,
+      required: true,
+    },
+    payload: {
+      type: Schema.Types.Mixed,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: Object.values(OutboxStatus),
+      default: OutboxStatus.PENDING,
+      index: true,
+    },
+    retryCount: {
+      type: Number,
+      default: 0,
+    },
+    maxRetries: {
+      type: Number,
+      default: 5,
+    },
+    lastError: {
+      type: String,
+    },
+    publishedAt: {
       type: Date,
-      required: true,
-      index: true,
-    },
-    revoked: {
-      type: Boolean,
-      default: false,
-      index: true,
     },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
+    timestamps: true,
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
@@ -64,18 +99,13 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
 // INDEXES
 // ============================================================================
 
-refreshTokenSchema.index({ userId: 1 });
-refreshTokenSchema.index({ tokenHash: 1 });
-refreshTokenSchema.index({ expiresAt: 1 });
-refreshTokenSchema.index({ revoked: 1 });
-
-// TTL index to automatically delete expired tokens after 7 days
-refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
+outboxSchema.index({ status: 1, createdAt: 1 });
+outboxSchema.index({ eventType: 1, status: 1 });
 
 // ============================================================================
 // MODEL
 // ============================================================================
 
-export const RefreshToken: Model<IRefreshToken> =
-  mongoose.models.RefreshToken || mongoose.model<IRefreshToken>('RefreshToken', refreshTokenSchema);
+export const Outbox: Model<IOutbox> =
+  mongoose.models.Outbox || mongoose.model<IOutbox>('Outbox', outboxSchema);
 

@@ -194,7 +194,7 @@ export function addSpanAttributes(attributes: Record<string, string | number | b
 export function addSpanEvent(name: string, attributes?: Record<string, unknown>): void {
   const span = trace.getActiveSpan();
   if (span) {
-    span.addEvent(name, attributes);
+    span.addEvent(name, attributes as any);
   }
 }
 

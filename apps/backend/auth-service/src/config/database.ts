@@ -94,9 +94,9 @@ export async function checkDatabaseHealth(): Promise<boolean> {
             return false;
         }
 
-        // Ping the database
-        await mongoose.connection.db.admin().ping();
-        return true;
+    // Ping the database
+    await mongoose.connection.db?.admin().ping();
+    return true;
     } catch (error) {
         logger.error('Database health check failed', error);
         return false;
