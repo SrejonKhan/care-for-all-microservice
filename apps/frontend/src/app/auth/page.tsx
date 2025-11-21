@@ -39,21 +39,21 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">CareForAll</h2>
+          <h2 className="text-3xl font-semibold text-black">CareForAll</h2>
           <p className="mt-2 text-sm text-gray-600">
             Join our community and make a difference
           </p>
         </div>
 
         {/* Mode Selection */}
-        <div className="bg-white rounded-lg shadow-sm p-1 mb-6">
+        <div className="bg-white rounded-md border border-gray-200 p-1 mb-6">
           <div className="flex space-x-1">
             <button
               onClick={() => setMode('login')}
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
                 mode === 'login'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-black text-white'
+                  : 'text-gray-500 hover:text-black'
               }`}
             >
               Login
@@ -62,8 +62,8 @@ export default function AuthPage() {
               onClick={() => setMode('register')}
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
                 mode === 'register'
-                  ? 'bg-green-600 text-white'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-black text-white'
+                  : 'text-gray-500 hover:text-black'
               }`}
             >
               Register
@@ -72,8 +72,8 @@ export default function AuthPage() {
               onClick={() => setMode('guest')}
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
                 mode === 'guest'
-                  ? 'bg-orange-600 text-white'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-black text-white'
+                  : 'text-gray-500 hover:text-black'
               }`}
             >
               Guest
@@ -82,7 +82,7 @@ export default function AuthPage() {
         </div>
 
         {/* Form Container */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-md border border-gray-200 p-6">
           <div className="mb-6">
             {mode === 'login' && (
               <div>
@@ -123,14 +123,14 @@ export default function AuthPage() {
               Don't have an account?{' '}
               <button
                 onClick={() => setMode('register')}
-                className="text-blue-600 hover:text-blue-500 font-medium"
+                className="text-black hover:text-gray-600 font-medium underline"
               >
                 Register here
               </button>
               {' '}or{' '}
               <button
                 onClick={() => setMode('guest')}
-                className="text-orange-600 hover:text-orange-500 font-medium"
+                className="text-black hover:text-gray-600 font-medium underline"
               >
                 continue as guest
               </button>
@@ -141,7 +141,7 @@ export default function AuthPage() {
               Already have an account?{' '}
               <button
                 onClick={() => setMode('login')}
-                className="text-blue-600 hover:text-blue-500 font-medium"
+                className="text-black hover:text-gray-600 font-medium underline"
               >
                 Login here
               </button>
@@ -152,7 +152,7 @@ export default function AuthPage() {
               Want to track your donations?{' '}
               <button
                 onClick={() => setMode('register')}
-                className="text-green-600 hover:text-green-500 font-medium"
+                className="text-black hover:text-gray-600 font-medium underline"
               >
                 Create an account
               </button>

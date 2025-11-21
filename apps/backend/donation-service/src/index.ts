@@ -45,9 +45,10 @@ const app = new OpenAPIHono();
 // CORS middleware (development only)
 if (config.NODE_ENV === 'development') {
   app.use('/*', async (c, next) => {
-    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    c.header('Access-Control-Allow-Credentials', 'true');
 
     if (c.req.method === 'OPTIONS') {
       return new Response('', { status: 204 });
@@ -107,7 +108,7 @@ app.doc('/openapi', {
   },
   servers: [
     {
-      url: 'http://localhost:3003',
+      url: 'http://localhost:4003',
       description: 'Local development',
     },
   ],

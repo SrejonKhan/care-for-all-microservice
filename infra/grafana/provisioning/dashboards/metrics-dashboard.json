@@ -1,0 +1,170 @@
+{
+  "dashboard": {
+    "title": "System Metrics (Prometheus)",
+    "uid": "metrics-dashboard",
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "CPU Usage by Container",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "rate(container_cpu_usage_seconds_total{name=~\".+\"}[5m]) * 100"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Memory Usage by Container",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "container_memory_usage_bytes{name=~\".+\"} / 1024 / 1024"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Network I/O by Container",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "rate(container_network_receive_bytes_total{name=~\".+\"}[5m])",
+            "legendFormat": "{{name}} - RX"
+          },
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "rate(container_network_transmit_bytes_total{name=~\".+\"}[5m])",
+            "legendFormat": "{{name}} - TX"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "Bps"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Disk I/O",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "rate(node_disk_read_bytes_total[5m])",
+            "legendFormat": "Read"
+          },
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "rate(node_disk_written_bytes_total[5m])",
+            "legendFormat": "Write"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "Bps"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "HTTP Request Rate",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(rate(http_server_requests_total[5m])) by (service)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "HTTP Response Time (p95)",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_milliseconds_bucket[5m])) by (le, service))"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Database Connection Pool",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "db_pool_connections_active",
+            "legendFormat": "{{service}} - Active"
+          },
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "db_pool_connections_idle",
+            "legendFormat": "{{service}} - Idle"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Node Exporter - System Load",
+        "type": "gauge",
+        "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "node_load1"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 0.7, "color": "yellow" },
+                { "value": 0.9, "color": "red" }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "time": { "from": "now-1h", "to": "now" },
+    "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] }
+  }
+}
