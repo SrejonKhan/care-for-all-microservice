@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/totals-service",
   "version": "1.0.0",
+  "description": "Campaign totals materialized view",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",

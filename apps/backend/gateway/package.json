@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/gateway",
   "version": "1.0.0",
+  "description": "API Gateway for Care For All donation platform",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",

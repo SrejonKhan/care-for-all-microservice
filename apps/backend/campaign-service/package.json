@@ -1,6 +1,7 @@
 {
   "name": "@care-for-all/campaign-service",
   "version": "1.0.0",
+  "description": "Campaign management service",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
