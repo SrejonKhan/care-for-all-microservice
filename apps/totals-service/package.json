@@ -1,0 +1,27 @@
+{
+  "name": "@care-for-all/totals-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "test": "bun test",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "@hono/zod-openapi": "^0.16.4",
+    "zod": "^3.23.8",
+    "@scalar/hono-api-reference": "^0.5.177",
+    "@care-for-all/shared-types": "workspace:*",
+    "@care-for-all/shared-config": "workspace:*",
+    "@care-for-all/shared-logger": "workspace:*",
+    "@care-for-all/shared-rabbitmq": "workspace:*",
+    "@care-for-all/shared-otel": "workspace:*"
+  },
+  "devDependencies": {
+    "bun-types": "^1.1.38",
+    "typescript": "^5.7.2"
+  }
+}

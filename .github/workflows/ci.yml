@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  BUN_VERSION: '1.1.38'
+
+jobs:
+  ci:
+    name: CI - Build & Test Changed Services
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ========================================================================
+      # SETUP
+      # ========================================================================
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for Turborepo to detect changes
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # ========================================================================
+      # DETERMINE BASE COMMIT FOR TURBOREPO FILTER
+      # ========================================================================
+
+      - name: Determine base commit (PR)
+        if: github.event_name == 'pull_request'
+        id: base-pr
+        run: |
+          echo "base_sha=origin/${{ github.base_ref }}" >> $GITHUB_OUTPUT
+
+      - name: Determine base commit (Push)
+        if: github.event_name == 'push'
+        id: base-push
+        run: |
+          # Use previous commit on push to main
+          BASE_SHA="${{ github.event.before }}"
+          
+          # Fallback to HEAD~1 if before SHA is not available
+          if [ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="HEAD~1"
+          fi
+          
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
+
+      - name: Set base SHA
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "base_sha=${{ steps.base-pr.outputs.base_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "base_sha=${{ steps.base-push.outputs.base_sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      # ========================================================================
+      # LINT (Optional - if linting is configured)
+      # ========================================================================
+
+      # - name: Lint changed packages
+      #   run: |
+      #     bunx turbo run lint --filter=..[${{ steps.base.outputs.base_sha }}]
+
+      # ========================================================================
+      # TEST
+      # ========================================================================
+
+      - name: Test changed packages
+        run: |
+          echo "Running tests for packages changed since ${{ steps.base.outputs.base_sha }}"
+          bunx turbo run test --filter=...[${BASE_SHA}]
+        env:
+          BASE_SHA: ${{ steps.base.outputs.base_sha }}
+
+      # ========================================================================
+      # BUILD
+      # ========================================================================
+
+      - name: Build changed packages
+        run: |
+          echo "Building packages changed since ${{ steps.base.outputs.base_sha }}"
+          bunx turbo run build --filter=...[${BASE_SHA}]
+        env:
+          BASE_SHA: ${{ steps.base.outputs.base_sha }}
+
+      # ========================================================================
+      # DOCKER (Optional - only build images for changed services)
+      # ========================================================================
+
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
+
+      # - name: Build Docker images for changed services
+      #   run: |
+      #     echo "Building Docker images for services changed since ${{ steps.base.outputs.base_sha }}"
+      #     bunx turbo run docker --filter=...[${BASE_SHA}]
+      #   env:
+      #     BASE_SHA: ${{ steps.base.outputs.base_sha }}
+
+      # ========================================================================
+      # SUMMARY
+      # ========================================================================
+
+      - name: CI Summary
+        if: always()
+        run: |
+          echo "### CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base SHA:** ${{ steps.base.outputs.base_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Current SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Only changed services were tested and built using Turborepo filters" >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
+  # OPTIONAL: Type Check Job
+  # ==========================================================================
+
+  # typecheck:
+  #   name: TypeScript Type Check
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: oven-sh/setup-bun@v1
+  #       with:
+  #         bun-version: ${{ env.BUN_VERSION }}
+  #     - run: bun install --frozen-lockfile
+  #     - run: bunx turbo run typecheck
+
+  # ==========================================================================
+  # OPTIONAL: Security Scan
+  # ==========================================================================
+
+  # security:
+  #   name: Security Scan
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Run Trivy vulnerability scanner
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: 'fs'
+  #         scan-ref: '.'
+  #         format: 'sarif'
+  #         output: 'trivy-results.sarif'
+

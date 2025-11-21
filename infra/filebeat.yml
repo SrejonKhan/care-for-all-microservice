@@ -1,0 +1,77 @@
+filebeat.inputs:
+  # Collect logs from Docker containers
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    
+    # Parse Docker JSON logs
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: log
+
+    # Add Docker metadata
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+
+      # Add Kubernetes metadata if running in K8s (optional)
+      # - add_kubernetes_metadata:
+      #     host: ${NODE_NAME}
+      #     matchers:
+      #       - logs_path:
+      #           logs_path: "/var/lib/docker/containers/"
+
+      # Drop fields to reduce log size
+      - drop_fields:
+          fields: ["agent", "ecs", "input", "log.offset"]
+          ignore_missing: true
+
+      # Add custom fields
+      - add_fields:
+          target: ''
+          fields:
+            environment: hackathon
+            platform: care-for-all
+
+# Output to Logstash
+output.logstash:
+  hosts: ["logstash:5044"]
+  
+  # Load balancing
+  loadbalance: true
+  
+  # Bulk settings
+  bulk_max_size: 2048
+  
+  # Worker threads
+  worker: 2
+
+# Output to Elasticsearch directly (alternative, currently disabled)
+# output.elasticsearch:
+#   hosts: ["elasticsearch:9200"]
+#   indices:
+#     - index: "logs-%{+yyyy.MM.dd}"
+
+# Logging
+logging.level: info
+logging.to_files: false
+logging.to_stderr: true
+
+# Monitoring (sends metrics to Elasticsearch)
+monitoring.enabled: false
+
+# Processors
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  
+  - add_cloud_metadata: ~
+  
+  - add_docker_metadata: ~
+
+# Queue settings
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 1s
+

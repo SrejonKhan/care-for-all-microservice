@@ -1,0 +1,29 @@
+{
+  "name": "care-for-all-microservice",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microservices-based donation platform with full observability",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "docker": "turbo run docker",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.1.0"
+  },
+  "packageManager": "bun@1.1.38"
+}
+

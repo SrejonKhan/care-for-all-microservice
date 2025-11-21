@@ -1,0 +1,381 @@
+version: '3.9'
+
+networks:
+  care-for-all:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  elasticsearch-data:
+  grafana-data:
+  prometheus-data:
+
+services:
+  # ============================================================================
+  # APPLICATION SERVICES
+  # ============================================================================
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: apps/gateway/Dockerfile
+    container_name: gateway
+    ports:
+      - "8080:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - CAMPAIGN_SERVICE_URL=http://campaign-service:3000
+      - PLEDGE_SERVICE_URL=http://pledge-service:3000
+      - PAYMENT_SERVICE_URL=http://payment-service:3000
+      - TOTALS_SERVICE_URL=http://totals-service:3000
+      - CHAT_SERVICE_URL=http://chat-service:3000
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ..
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: auth-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+      - JWT_SECRET=jwt_secret_change_in_production
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+
+  campaign-service:
+    build:
+      context: ..
+      dockerfile: apps/campaign-service/Dockerfile
+    container_name: campaign-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+
+  pledge-service:
+    build:
+      context: ..
+      dockerfile: apps/pledge-service/Dockerfile
+    container_name: pledge-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+      - PAYMENT_SERVICE_URL=http://payment-service:3000
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+
+  payment-service:
+    build:
+      context: ..
+      dockerfile: apps/payment-service/Dockerfile
+    container_name: payment-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+
+  totals-service:
+    build:
+      context: ..
+      dockerfile: apps/totals-service/Dockerfile
+    container_name: totals-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+
+  chat-service:
+    build:
+      context: ..
+      dockerfile: apps/chat-service/Dockerfile
+    container_name: chat-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/care_for_all
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
+    networks:
+      - care-for-all
+    depends_on:
+      - postgres
+      - rabbitmq
+      - otel-collector
+
+  admin-frontend:
+    build:
+      context: ../apps/admin-frontend
+      dockerfile: Dockerfile
+    container_name: admin-frontend
+    ports:
+      - "3002:80"
+    networks:
+      - care-for-all
+    depends_on:
+      - gateway
+
+  # ============================================================================
+  # DATA & MESSAGING
+  # ============================================================================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=care_for_all
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - care-for-all
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "15672:15672"  # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - care-for-all
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # OBSERVABILITY - TRACING & METRICS
+  # ============================================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.97.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics exporter
+    networks:
+      - care-for-all
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14250:14250"  # gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - care-for-all
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - care-for-all
+    depends_on:
+      - otel-collector
+      - node-exporter
+      - cadvisor
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - care-for-all
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    networks:
+      - care-for-all
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - care-for-all
+    depends_on:
+      - prometheus
+      - elasticsearch
+
+  # ============================================================================
+  # OBSERVABILITY - LOGGING (ELK STACK)
+  # ============================================================================
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - care-for-all
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.2
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5044:5044"
+    environment:
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+    networks:
+      - care-for-all
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - care-for-all
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.12.2
+    container_name: filebeat
+    user: root
+    command: filebeat -e -strict.perms=false
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - care-for-all
+    depends_on:
+      - logstash
+      - elasticsearch
+
