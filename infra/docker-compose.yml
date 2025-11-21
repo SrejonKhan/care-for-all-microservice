@@ -34,7 +34,15 @@ services:
       - frontend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -98,8 +106,6 @@ services:
     depends_on:
       mongodb-primary:
         condition: service_healthy
-      - rabbitmq
-      - otel-collector
 
   campaign-service:
     build:
@@ -134,11 +140,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - LOG_LEVEL=info
-<<<<<<< HEAD
-      - DATABASE_URL=mongodb://mongodb:27017/care_for_all
-=======
       - DATABASE_URL=mongodb://mongodb-primary:27017,mongodb-secondary1:27017,mongodb-secondary2:27017/donation-service?replicaSet=rs0
->>>>>>> 2c2aedfa07ad21dd93770af16e5a15392dbe4bb1
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - INTERNAL_SERVICE_SECRET=hackathon_secret_2025
@@ -150,9 +152,6 @@ services:
     networks:
       - care-for-all
     depends_on:
-<<<<<<< HEAD
-      - mongodb
-=======
       mongodb-primary:
         condition: service_healthy
       mongodb-secondary1:
@@ -161,9 +160,10 @@ services:
         condition: service_healthy
       mongodb-init:
         condition: service_completed_successfully
->>>>>>> 2c2aedfa07ad21dd93770af16e5a15392dbe4bb1
-      - rabbitmq
-      - otel-collector
+      rabbitmq:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   payment-service:
     build:
@@ -379,8 +379,8 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
     ports:
-      - "5672:5672"    # AMQP port for local services  
-      - "15672:15672"  # Management UI
+      - "5672:5672" # AMQP port for local services
+      - "15672:15672" # Management UI
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -405,9 +405,9 @@ services:
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "8889:8889"   # Prometheus metrics exporter
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8889:8889" # Prometheus metrics exporter
     networks:
       - care-for-all
     depends_on:
@@ -417,8 +417,8 @@ services:
     image: jaegertracing/all-in-one:1.55
     container_name: jaeger
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "14250:14250"  # gRPC
+      - "16686:16686" # Jaeger UI
+      - "14250:14250" # gRPC
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     networks:
@@ -428,10 +428,10 @@ services:
     image: prom/prometheus:v2.50.1
     container_name: prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -448,7 +448,7 @@ services:
     image: prom/node-exporter:v1.7.0
     container_name: node-exporter
     command:
-      - '--path.rootfs=/host'
+      - "--path.rootfs=/host"
     volumes:
       - /:/host:ro,rslave
     networks:
@@ -505,7 +505,8 @@ services:
     networks:
       - care-for-all
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -550,4 +551,3 @@ services:
     depends_on:
       - logstash
       - elasticsearch
-
