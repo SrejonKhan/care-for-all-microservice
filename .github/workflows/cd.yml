@@ -45,6 +45,30 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Verify Docker installation
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "
+            if ! command -v docker &> /dev/null; then
+              echo '❌ Docker not found. Please run setup-droplet.sh on the droplet first.'
+              exit 1
+            fi
+            
+            if ! docker ps &> /dev/null; then
+              echo '❌ Deploy user cannot access Docker. Checking permissions...'
+              echo 'Current user groups:'
+              groups
+              echo ''
+              echo 'Attempting to add deploy user to docker group (requires sudo)...'
+              echo 'Please ensure deploy user is in docker group by running on droplet:'
+              echo 'sudo usermod -aG docker deploy'
+              echo 'Then logout and login again, or run: newgrp docker'
+              exit 1
+            fi
+            
+            echo '✅ Docker is accessible'
+            docker --version
+          "
+
       - name: Create deployment directory
         run: |
           ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "mkdir -p ${{ env.DEPLOY_PATH }}"
@@ -103,8 +127,17 @@ jobs:
 
       - name: Start services with Docker Compose
         run: |
-          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "cd ${{ env.DEPLOY_PATH }}/infra && \
-            docker compose --env-file ../.env.production up -d --build --force-recreate"
+          ssh ${{ env.DEPLOY_USER }}@${{ secrets.DO_HOST }} "
+            cd ${{ env.DEPLOY_PATH }}/infra
+            
+            # Ensure docker command is available
+            if ! command -v docker &> /dev/null; then
+              export PATH=\$PATH:/usr/bin:/usr/local/bin
+            fi
+            
+            # Start services
+            docker compose --env-file ../.env.production up -d --build --force-recreate
+          "
 
       - name: Wait for services to be healthy
         run: |
