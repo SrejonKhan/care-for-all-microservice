@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
+    "dev:local": "bun --env-file=.env.local --watch src/index.ts",
     "start": "bun src/index.ts",
+    "start:local": "bash start-local.sh",
+    "test:local": "bash test-local.sh",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "test": "bun test",
     "clean": "rm -rf dist"
@@ -17,10 +20,15 @@
     "@care-for-all/shared-types": "workspace:*",
     "@care-for-all/shared-config": "workspace:*",
     "@care-for-all/shared-logger": "workspace:*",
-    "@care-for-all/shared-otel": "workspace:*"
+    "@care-for-all/shared-otel": "workspace:*",
+    "mongoose": "^8.8.3",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "bun-types": "^1.1.38",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7"
   }
 }

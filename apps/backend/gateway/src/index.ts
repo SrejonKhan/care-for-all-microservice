@@ -92,8 +92,8 @@ app.all('/api/auth/*', proxyMiddleware(config.AUTH_SERVICE_URL, '/api/auth', log
 // Proxy to campaign-service
 app.all('/api/campaigns/*', proxyMiddleware(config.CAMPAIGN_SERVICE_URL, '/api/campaigns', logger));
 
-// Proxy to pledge-service
-app.all('/api/pledges/*', proxyMiddleware(config.PLEDGE_SERVICE_URL, '/api/pledges', logger));
+// Proxy to donation-service
+app.all('/api/donations/*', proxyMiddleware(config.DONATION_SERVICE_URL, '/api/donations', logger));
 
 // Proxy to payment-service
 app.all('/api/payments/*', proxyMiddleware(config.PAYMENT_SERVICE_URL, '/api/payments', logger));

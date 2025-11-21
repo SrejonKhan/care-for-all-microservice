@@ -10,7 +10,7 @@ This is a **Turborepo monorepo** with:
 - **gateway** - API Gateway for external traffic
 - **auth-service** - User authentication service
 - **campaign-service** - Campaign CRUD operations
-- **pledge-service** - Pledge state machine
+- **donation-service** - Donation state machine
 - **payment-service** - Payment workflows with webhooks & idempotency
 - **totals-service** - Materialized view for campaign totals
 - **chat-service** - Real-time chat with WebSocket support
@@ -106,7 +106,7 @@ Once `docker compose up` is running, access the following UIs:
 gateway:          http://gateway:3000
 auth-service:     http://auth-service:3000
 campaign-service: http://campaign-service:3000
-pledge-service:   http://pledge-service:3000
+donation-service: http://donation-service:3000
 payment-service:  http://payment-service:3000
 totals-service:   http://totals-service:3000
 chat-service:     http://chat-service:3000
@@ -121,7 +121,7 @@ care-for-all-microservice/
 │   │   ├── gateway/          # API Gateway
 │   │   ├── auth-service/     # Authentication
 │   │   ├── campaign-service/ # Campaigns CRUD
-│   │   ├── pledge-service/   # Pledges state machine
+│   │   ├── donation-service/ # Donations state machine
 │   │   ├── payment-service/  # Payment processing
 │   │   ├── totals-service/   # Campaign totals
 │   │   └── chat-service/     # Real-time chat
@@ -254,7 +254,7 @@ This repository provides a complete scaffold. The following business logic needs
 ### Service Logic
 - [ ] **auth-service**: Implement JWT auth, user registration/login
 - [ ] **campaign-service**: Full CRUD with PostgreSQL persistence
-- [ ] **pledge-service**: State machine transitions (PENDING → AUTHORIZED → CAPTURED)
+- [ ] **donation-service**: State machine transitions (PENDING → AUTHORIZED → CAPTURED)
 - [ ] **payment-service**: Payment provider integration, webhook handling, idempotency keys
 - [ ] **totals-service**: Event listeners to update campaign totals
 - [ ] **chat-service**: WebSocket room management, message persistence
