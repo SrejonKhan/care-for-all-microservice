@@ -2,11 +2,12 @@
 
 A complete microservices-based donation platform built for hackathon demonstration, featuring full observability stack with OpenTelemetry, Prometheus, Grafana, Jaeger, and ELK.
 
-## 🏗️ Architecture
+## Architecture
 
 This is a **Turborepo monorepo** with:
 
 ### Microservices (Bun + Hono + TypeScript)
+
 - **gateway** - API Gateway for external traffic
 - **auth-service** - User authentication service
 - **campaign-service** - Campaign CRUD operations
@@ -16,9 +17,11 @@ This is a **Turborepo monorepo** with:
 - **chat-service** - Real-time chat with WebSocket support
 
 ### Frontend
+
 - **admin-frontend** - Admin panel (Vite + React + TypeScript)
 
 ### Shared Packages
+
 - **shared-types** - Common TypeScript types, interfaces, and event schemas
 - **shared-config** - Configuration loader and validation
 - **shared-logger** - Structured JSON logging
@@ -26,6 +29,7 @@ This is a **Turborepo monorepo** with:
 - **shared-otel** - OpenTelemetry tracing initialization
 
 ### Infrastructure Stack
+
 - **PostgreSQL** - Primary database
 - **RabbitMQ** - Message broker for async communication
 - **OpenTelemetry Collector** - Telemetry data pipeline
@@ -39,32 +43,37 @@ This is a **Turborepo monorepo** with:
 - **Kibana** - Log exploration UI
 - **Filebeat** - Container log shipping
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
+
 - **Bun** >= 1.1.0 ([Install Bun](https://bun.sh))
 - **Docker** & **Docker Compose**
 
 ### Installation
 
 1. **Clone the repository**
+
 ```bash
 git clone <repo-url>
 cd care-for-all-microservice
 ```
 
 2. **Install dependencies**
+
 ```bash
 bun install
 ```
 
 3. **Start all services with Docker Compose**
+
 ```bash
 cd infra
 docker compose up --build
 ```
 
 This single command starts:
+
 - Nginx reverse proxy (single entry point)
 - All 7 microservices
 - Next.js frontend
@@ -84,25 +93,25 @@ cd apps/backend/gateway
 bun run dev
 ```
 
-## 📊 Observability Access
+## Observability Access
 
 Once `docker compose up` is running, access the following UIs:
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| **Application** | http://localhost | Main entry point (nginx) |
-| **API** | http://localhost/api | API Gateway (via nginx) |
-| **API Docs** | http://localhost/docs | Interactive API documentation (Scalar) |
-| **Admin Panel** | http://localhost/admin | Admin panel |
-| **Grafana** | http://localhost:3001 | Metrics dashboards (login: admin/admin) |
-| **Prometheus** | http://localhost:9090 | Metrics exploration |
-| **Jaeger** | http://localhost:16686 | Distributed tracing |
-| **Kibana** | http://localhost:5601 | Log exploration |
-| **Elasticsearch** | http://localhost:9200 | Raw log queries |
-| **RabbitMQ UI** | http://localhost:15672 | Message broker UI (guest/guest) |
-| **cAdvisor** | http://localhost:8080 | Container metrics |
+| Service           | URL                    | Description                             |
+| ----------------- | ---------------------- | --------------------------------------- |
+| **Application**   | http://localhost       | Main entry point (nginx)                |
+| **API**           | http://localhost/api   | API Gateway (via nginx)                 |
+| **API Docs**      | http://localhost/docs  | Interactive API documentation (Scalar)  |
+| **Admin Panel**   | http://localhost/admin | Admin panel                             |
+| **Grafana**       | http://localhost:3001  | Metrics dashboards (login: admin/admin) |
+| **Prometheus**    | http://localhost:9090  | Metrics exploration                     |
+| **Jaeger**        | http://localhost:16686 | Distributed tracing                     |
+| **Kibana**        | http://localhost:5601  | Log exploration                         |
+| **Elasticsearch** | http://localhost:9200  | Raw log queries                         |
+| **RabbitMQ UI**   | http://localhost:15672 | Message broker UI (guest/guest)         |
+| **cAdvisor**      | http://localhost:8080  | Container metrics                       |
 
-## 🔍 Service URLs
+## Service URLs
 
 ### Public URLs (via Nginx)
 
@@ -128,7 +137,7 @@ chat-service:     http://chat-service:3000
 admin-frontend:   http://admin-frontend:80
 ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 care-for-all-microservice/
@@ -164,7 +173,7 @@ care-for-all-microservice/
 └── tsconfig.base.json        # Base TypeScript config
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -175,7 +184,7 @@ cd apps/campaign-service
 bun test
 ```
 
-## 🔨 Building
+## Building
 
 ```bash
 # Build all apps and packages
@@ -185,7 +194,7 @@ bun run build
 bun run build --filter=...[origin/main]
 ```
 
-## 🐳 Docker
+## Docker
 
 ```bash
 # Build Docker images for all services
@@ -195,7 +204,7 @@ bun run docker
 bun run docker --filter=...[origin/main]
 ```
 
-## 🔄 CI/CD
+## CI/CD
 
 ### Continuous Integration (CI)
 
@@ -229,9 +238,9 @@ git push origin main
 # Go to Actions → Version Bump → Run workflow
 ```
 
-📚 **Full CI/CD Documentation**: See [CI_CD_SETUP.md](./CI_CD_SETUP.md)
+**Full CI/CD Documentation**: See [CI_CD_SETUP.md](./CI_CD_SETUP.md)
 
-## 🛠️ API Documentation
+## API Documentation
 
 Each microservice exposes interactive API documentation powered by **Scalar**:
 
@@ -242,7 +251,7 @@ Each microservice exposes interactive API documentation powered by **Scalar**:
 
 All endpoints are validated with **Zod schemas** and generate OpenAPI specs automatically via `@hono/zod-openapi`.
 
-## 📝 Environment Variables
+## Environment Variables
 
 Each service uses environment variables for configuration. Key vars include:
 
@@ -266,7 +275,7 @@ INTERNAL_SERVICE_SECRET=your-secret-here
 
 See individual service directories for complete `.env.example` files.
 
-## 📚 Technology Stack
+## Technology Stack
 
 - **Runtime**: Bun 1.1+
 - **Framework**: Hono 4.x
@@ -282,15 +291,17 @@ See individual service directories for complete `.env.example` files.
 - **Monorepo**: Turborepo 2.x
 - **CI/CD**: GitHub Actions
 
-## 🎯 TODO - Business Logic Implementation
+## TODO - Business Logic Implementation
 
 This repository provides a complete scaffold. The following business logic needs implementation:
 
 ### Database Schemas
+
 - [ ] Create Prisma/Drizzle schemas for Campaign, Pledge, Payment, User
 - [ ] Add migration scripts
 
 ### Service Logic
+
 - [ ] **auth-service**: Implement JWT auth, user registration/login
 - [ ] **campaign-service**: Full CRUD with PostgreSQL persistence
 - [ ] **donation-service**: State machine transitions (PENDING → AUTHORIZED → CAPTURED)
@@ -299,36 +310,37 @@ This repository provides a complete scaffold. The following business logic needs
 - [ ] **chat-service**: WebSocket room management, message persistence
 
 ### Event-Driven Communication
+
 - [ ] Wire RabbitMQ event publishers in services
 - [ ] Implement event consumers in relevant services
 - [ ] Define exchange/queue topology
 
 ### Frontend
+
 - [ ] Build admin UI for campaign management
 - [ ] Add dashboard for monitoring pledges/payments
 - [ ] Implement real-time chat interface
 
-## 🤝 Contributing
+## Contributing
 
 This is a hackathon project. Contributions welcome!
 
-## 🎯 Hackathon Checkpoints Status
+## Hackathon Checkpoints Status
 
-| Checkpoint | Status | Documentation |
-|------------|--------|---------------|
+| Checkpoint                   | Status      | Documentation                        |
+| ---------------------------- | ----------- | ------------------------------------ |
 | **1. Architecture & Design** | ✅ Complete | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| **2. Core Implementation** | ✅ Complete | [README.md](./README.md) (this file) |
-| **3. Observability** | ✅ Complete | [infra/README.md](./infra/README.md) |
-| **4. CI/CD Pipeline** | ✅ Complete | [CI_CD_SETUP.md](./CI_CD_SETUP.md) |
+| **2. Core Implementation**   | ✅ Complete | [README.md](./README.md) (this file) |
+| **3. Observability**         | ✅ Complete | [infra/README.md](./infra/README.md) |
+| **4. CI/CD Pipeline**        | ✅ Complete | [CI_CD_SETUP.md](./CI_CD_SETUP.md)   |
 
 ### Additional Documentation
 
-- 📚 [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Digital Ocean deployment
-- 🎤 [HACKATHON_DEMO.md](./HACKATHON_DEMO.md) - Demo script for judges
-- 📊 [CHECKPOINT_4_SUMMARY.md](./CHECKPOINT_4_SUMMARY.md) - CI/CD compliance
-- 🤝 [CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Digital Ocean deployment
+- [HACKATHON_DEMO.md](./HACKATHON_DEMO.md) - Demo script for judges
+- [CHECKPOINT_4_SUMMARY.md](./CHECKPOINT_4_SUMMARY.md) - CI/CD compliance
+- [CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
 
-## 📄 License
+## License
 
 MIT
-
