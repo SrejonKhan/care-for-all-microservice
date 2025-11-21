@@ -8,7 +8,7 @@
     "start": "bun src/index.ts",
     "start:local": "bash start-local.sh",
     "test:local": "bash test-local.sh",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "build": "tsc",
     "test": "bun test",
     "clean": "rm -rf dist"
   },
