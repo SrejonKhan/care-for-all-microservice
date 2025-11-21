@@ -113,9 +113,9 @@ export default function CreateCampaignForm({ onSuccess, onCancel }: CreateCampai
         {onCancel && (
           <button
             onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 text-xl font-bold"
           >
-            ✕
+            Close
           </button>
         )}
       </div>

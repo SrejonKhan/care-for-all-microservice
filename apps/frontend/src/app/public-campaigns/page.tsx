@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { campaignService, Campaign } from '../../lib/campaign';
 import { formatCurrency, calculateProgress } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import DonationModal from '../../components/DonationModal';
 
 export default function PublicCampaignsPage() {
   const { isAuthenticated, isLoading } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
@@ -37,6 +40,16 @@ export default function PublicCampaignsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDonateClick = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setIsDonationModalOpen(true);
+  };
+
+  const handleDonationSuccess = () => {
+    // Refresh campaigns to show updated amounts
+    loadCampaigns();
   };
 
   if (loading) {
@@ -167,8 +180,11 @@ export default function PublicCampaignsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex space-x-2">
-                    <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                      {isAuthenticated ? 'Donate Now' : 'View Details'}
+                    <button 
+                      onClick={() => handleDonateClick(campaign)}
+                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Donate Now
                     </button>
                     <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                       <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,6 +238,19 @@ export default function PublicCampaignsPage() {
           </div>
         )}
       </div>
+
+      {/* Donation Modal */}
+      {selectedCampaign && (
+        <DonationModal
+          campaign={selectedCampaign}
+          isOpen={isDonationModalOpen}
+          onClose={() => {
+            setIsDonationModalOpen(false);
+            setSelectedCampaign(null);
+          }}
+          onSuccess={handleDonationSuccess}
+        />
+      )}
     </div>
   );
 }

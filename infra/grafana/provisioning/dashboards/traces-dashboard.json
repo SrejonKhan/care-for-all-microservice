@@ -1,0 +1,76 @@
+{
+  "dashboard": {
+    "title": "Distributed Traces (Jaeger)",
+    "uid": "traces-dashboard",
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate by Service",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "jaeger", "uid": "jaeger" },
+            "queryType": "search",
+            "service": "gateway-service"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Average Response Time",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "rate(http_server_duration_milliseconds_sum[5m]) / rate(http_server_duration_milliseconds_count[5m])"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Service Dependency Graph",
+        "type": "nodeGraph",
+        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 12 },
+        "targets": [
+          {
+            "datasource": { "type": "jaeger", "uid": "jaeger" }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Rate by Service",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(rate(http_server_requests_total{status=~\"5..\"}[5m])) by (service)"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Top Slowest Traces",
+        "type": "table",
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "jaeger", "uid": "jaeger" },
+            "queryType": "search",
+            "limit": 20,
+            "tags": ""
+          }
+        ]
+      }
+    ],
+    "time": { "from": "now-1h", "to": "now" },
+    "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] }
+  }
+}

@@ -4,6 +4,7 @@ datasources:
   # Prometheus for metrics
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
@@ -15,17 +16,20 @@ datasources:
   # Jaeger for distributed tracing
   - name: Jaeger
     type: jaeger
+    uid: jaeger
     access: proxy
     url: http://jaeger:16686
     editable: true
     jsonData:
       tracesToLogs:
         datasourceUid: 'elasticsearch'
-        tags: ['trace_id']
+        tags: ['trace_id', 'traceId']
+        mappedTags: [{ key: 'trace_id', value: 'traceId' }]
 
   # Elasticsearch for logs
   - name: Elasticsearch
     type: elasticsearch
+    uid: elasticsearch
     access: proxy
     url: http://elasticsearch:9200
     database: "logs-*"
@@ -37,4 +41,6 @@ datasources:
       logLevelField: log_level
       interval: Daily
       timeInterval: 10s
+      includeFrozen: false
+      maxConcurrentShardRequests: 5
 

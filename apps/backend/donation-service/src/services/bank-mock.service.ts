@@ -16,15 +16,15 @@ const logger = createLogger({
 // In-memory bank account balances for demonstration
 // In a real system, this would call an external bank API
 const mockBankAccounts = new Map<string, number>([
-  // Default accounts with different balances
-  ['bank_acc_001', 100000], // $1000.00
-  ['bank_acc_002', 50000],  // $500.00
-  ['bank_acc_003', 10000],  // $100.00
-  ['bank_acc_004', 5000],   // $50.00
-  ['bank_acc_005', 1000],   // $10.00
-  ['bank_acc_006', 100],    // $1.00
+  // Default accounts with different balances (in dollars)
+  ['bank_acc_001', 1000],   // $1000.00
+  ['bank_acc_002', 500],    // $500.00
+  ['bank_acc_003', 100],    // $100.00
+  ['bank_acc_004', 50],     // $50.00
+  ['bank_acc_005', 10],     // $10.00
+  ['bank_acc_006', 1],      // $1.00
   ['bank_acc_007', 0],      // $0.00 (insufficient)
-  ['bank_acc_guest', 100000], // Default for guest users
+  ['bank_acc_guest', 1000], // Default for guest users
 ]);
 
 // ============================================================================

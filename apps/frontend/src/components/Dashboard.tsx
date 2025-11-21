@@ -88,12 +88,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-md border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-semibold text-black">
               Welcome back, {user.name}!
-              {isGuest && <span className="text-orange-600 ml-2">(Guest)</span>}
+              {isGuest && <span className="text-gray-500 ml-2">(Guest)</span>}
             </h2>
             <p className="mt-1 text-sm text-gray-600">
               {hasAdminAccess 
@@ -104,7 +104,7 @@ export default function Dashboard() {
           </div>
           
           <div className="text-right text-sm">
-            <p className="font-medium text-gray-900">{user.email || 'Guest User'}</p>
+            <p className="font-medium text-black">{user.email || 'Guest User'}</p>
             <p className="text-gray-500 capitalize">
               {user.role.toLowerCase().replace('_', ' ')}
             </p>
@@ -117,21 +117,21 @@ export default function Dashboard() {
         {stats.map((item) => (
           <div
             key={item.name}
-            className="bg-white overflow-hidden shadow rounded-lg"
+            className="bg-white border border-gray-200 rounded-md overflow-hidden"
           >
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-2xl font-bold text-black">
                     {item.value}
                   </div>
                 </div>
               </div>
               <div className="mt-1">
-                <div className="text-sm font-medium text-gray-500">
+                <div className="text-sm font-medium text-gray-600">
                   {item.name}
                 </div>
-                <div className="text-sm text-green-600">
+                <div className="text-sm text-gray-500">
                   {item.change} from last month
                 </div>
               </div>
@@ -143,9 +143,9 @@ export default function Dashboard() {
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Activity */}
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white border border-gray-200 rounded-md">
           <div className="px-6 py-5 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-black">
               {hasAdminAccess ? 'Recent Platform Activity' : 'Your Activity'}
             </h3>
           </div>
@@ -155,12 +155,12 @@ export default function Dashboard() {
                 <div key={activity.id} className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     <div className={`w-2 h-2 rounded-full ${
-                      activity.type === 'donation' ? 'bg-green-400' :
-                      activity.type === 'campaign' ? 'bg-blue-400' : 'bg-purple-400'
+                      activity.type === 'donation' ? 'bg-black' :
+                      activity.type === 'campaign' ? 'bg-gray-600' : 'bg-gray-400'
                     }`} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-gray-900">{activity.message}</p>
+                    <p className="text-sm text-black">{activity.message}</p>
                     <p className="text-xs text-gray-500">{activity.time}</p>
                   </div>
                 </div>
@@ -170,9 +170,9 @@ export default function Dashboard() {
         </div>
 
         {/* Actions Panel */}
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white border border-gray-200 rounded-md">
           <div className="px-6 py-5 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-black">
               {hasAdminAccess ? 'Admin Actions' : 'Quick Actions'}
             </h3>
           </div>
@@ -182,53 +182,53 @@ export default function Dashboard() {
                 <>
                   {isAdmin && (
                     <>
-                      <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <div className="font-medium text-gray-900">Manage Users</div>
+                      <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div className="font-medium text-black">Manage Users</div>
                         <div className="text-sm text-gray-500">View and manage user accounts</div>
                       </button>
-                      <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <div className="font-medium text-gray-900">System Settings</div>
+                      <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div className="font-medium text-black">System Settings</div>
                         <div className="text-sm text-gray-500">Configure platform settings</div>
                       </button>
                     </>
                   )}
                   
-                  <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="font-medium text-gray-900">Manage Campaigns</div>
+                  <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="font-medium text-black">Manage Campaigns</div>
                     <div className="text-sm text-gray-500">Create and manage campaigns</div>
                   </button>
                   
-                  <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="font-medium text-gray-900">View Reports</div>
+                  <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="font-medium text-black">View Reports</div>
                     <div className="text-sm text-gray-500">Analytics and performance reports</div>
                   </button>
                   
-                  <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="font-medium text-gray-900">Review Donations</div>
+                  <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="font-medium text-black">Review Donations</div>
                     <div className="text-sm text-gray-500">Monitor donation activities</div>
                   </button>
                 </>
               ) : (
                 <>
-                  <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="font-medium text-gray-900">Browse Campaigns</div>
+                  <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="font-medium text-black">Browse Campaigns</div>
                     <div className="text-sm text-gray-500">Find causes to support</div>
                   </button>
                   
-                  <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="font-medium text-gray-900">Donation History</div>
+                  <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="font-medium text-black">Donation History</div>
                     <div className="text-sm text-gray-500">View your past donations</div>
                   </button>
                   
-                  <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="font-medium text-gray-900">Account Settings</div>
+                  <button className="w-full text-left p-4 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="font-medium text-black">Account Settings</div>
                     <div className="text-sm text-gray-500">Update your profile and preferences</div>
                   </button>
 
                   {isGuest && (
-                    <button className="w-full text-left p-4 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors">
-                      <div className="font-medium text-blue-900">Upgrade Account</div>
-                      <div className="text-sm text-blue-700">Create a full account to track donations</div>
+                    <button className="w-full text-left p-4 rounded-md border border-gray-900 bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <div className="font-medium text-black">Upgrade Account</div>
+                      <div className="text-sm text-gray-600">Create a full account to track donations</div>
                     </button>
                   )}
                 </>
@@ -240,33 +240,26 @@ export default function Dashboard() {
 
       {/* Guest Account Notice */}
       {isGuest && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <div className="w-5 h-5 text-blue-400">
-                ℹ️
-              </div>
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-6">
+          <div>
+            <h3 className="text-sm font-medium text-black">
+              Guest Account
+            </h3>
+            <div className="mt-2 text-sm text-gray-600">
+              <p>
+                You're using a guest account. Create a full account to:
+              </p>
+              <ul className="mt-1 list-disc list-inside">
+                <li>Track all your donations</li>
+                <li>Receive campaign updates</li>
+                <li>Save favorite causes</li>
+                <li>Get donation receipts</li>
+              </ul>
             </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-900">
-                Guest Account
-              </h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <p>
-                  You're using a guest account. Create a full account to:
-                </p>
-                <ul className="mt-1 list-disc list-inside">
-                  <li>Track all your donations</li>
-                  <li>Receive campaign updates</li>
-                  <li>Save favorite causes</li>
-                  <li>Get donation receipts</li>
-                </ul>
-              </div>
-              <div className="mt-4">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors">
-                  Upgrade to Full Account
-                </button>
-              </div>
+            <div className="mt-4">
+              <button className="bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors font-medium">
+                Upgrade to Full Account
+              </button>
             </div>
           </div>
         </div>

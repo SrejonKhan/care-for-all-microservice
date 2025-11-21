@@ -1,0 +1,92 @@
+{
+  "dashboard": {
+    "title": "Application Logs (ELK Stack)",
+    "uid": "logs-dashboard",
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Log Volume by Service",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+            "query": "*",
+            "metrics": [{ "type": "count", "id": "1" }],
+            "bucketAggs": [
+              { "type": "date_histogram", "field": "@timestamp", "id": "2" },
+              { "type": "terms", "field": "service.keyword", "id": "3" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Log Levels Distribution",
+        "type": "piechart",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+            "query": "*",
+            "metrics": [{ "type": "count", "id": "1" }],
+            "bucketAggs": [
+              { "type": "terms", "field": "log_level.keyword", "id": "2" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Logs",
+        "type": "logs",
+        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 10 },
+        "targets": [
+          {
+            "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+            "query": "log_level:ERROR",
+            "metrics": [{ "type": "logs", "id": "1" }]
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "wrapLogMessage": true
+        }
+      },
+      {
+        "id": 4,
+        "title": "Recent Logs by Service",
+        "type": "table",
+        "gridPos": { "x": 0, "y": 18, "w": 24, "h": 10 },
+        "targets": [
+          {
+            "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+            "query": "*",
+            "metrics": [{ "type": "logs", "id": "1" }]
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "@timestamp": "Time",
+                "service": "Service",
+                "log_level": "Level",
+                "message": "Message"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "time": { "from": "now-1h", "to": "now" },
+    "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] }
+  }
+}

@@ -371,6 +371,106 @@ campaignRoutes.post('/simple-create', async (c) => {
   }
 });
 
+// Donation endpoint - proxies to donation-service
+campaignRoutes.post('/donations', async (c) => {
+  try {
+    const body = await c.req.json();
+    logger.info('Donation request received', { body });
+    
+    // Validate required fields
+    if (!body.campaignId || !body.amount || body.amount < 1) {
+      return c.json({
+        success: false,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Campaign ID and valid amount are required',
+        },
+      }, 400);
+    }
+
+    // Verify campaign exists and is active
+    const campaign = await CampaignService.getCampaignById(body.campaignId);
+    
+    if (campaign.status !== 'ACTIVE') {
+      return c.json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_ACTIVE',
+          message: 'Campaign is not active for donations',
+        },
+      }, 400);
+    }
+
+    // Call donation-service to process the donation
+    const donationServiceUrl = process.env.DONATION_SERVICE_URL || 'http://localhost:4003';
+    
+    // Prepare donation request
+    const donationRequest = {
+      campaignId: body.campaignId,
+      amount: body.amount,
+      donorName: body.donorName,
+      donorEmail: body.donorEmail,
+      isAnonymous: body.isAnonymous || false,
+      bankAccountId: body.bankAccountId || 'bank_acc_guest',
+    };
+
+    logger.info('Calling donation-service', { 
+      url: `${donationServiceUrl}/api/donations`,
+      request: donationRequest 
+    });
+
+    // Make request to donation-service
+    const donationResponse = await fetch(`${donationServiceUrl}/api/donations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(donationRequest),
+    });
+
+    const donationResult = await donationResponse.json();
+
+    if (!donationResponse.ok || !donationResult.success) {
+      logger.error('Donation service failed', { 
+        status: donationResponse.status,
+        result: donationResult 
+      });
+      
+      return c.json({
+        success: false,
+        error: donationResult.error || {
+          code: 'DONATION_FAILED',
+          message: 'Failed to process donation',
+        },
+      }, donationResponse.status);
+    }
+
+    logger.info('Donation processed successfully', { 
+      donationId: donationResult.data.id,
+      amount: body.amount,
+      campaignId: body.campaignId,
+    });
+
+    return c.json({
+      success: true,
+      data: donationResult.data,
+    }, 201);
+  } catch (error: any) {
+    logger.error('Donation processing failed', { 
+      error: error.message, 
+      stack: error.stack 
+    });
+    
+    return c.json({
+      success: false,
+      error: {
+        code: 'DONATION_FAILED',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    }, 500);
+  }
+});
+
 // List campaigns (public)
 campaignRoutes.openapi(listCampaignsRoute, async (c) => {
   try {
