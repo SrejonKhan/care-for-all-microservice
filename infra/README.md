@@ -20,6 +20,7 @@ This single command will start all 21 services including:
 
 ### Application Services (8)
 
+**Backend Services:**
 | Service | Port | Description |
 |---------|------|-------------|
 | gateway | 8080 | API Gateway - main entry point |
@@ -29,6 +30,10 @@ This single command will start all 21 services including:
 | payment-service | 3000 (internal) | Payment processing |
 | totals-service | 3000 (internal) | Campaign totals (materialized view) |
 | chat-service | 3000 (internal) | Real-time chat with WebSocket |
+
+**Frontend:**
+| Service | Port | Description |
+|---------|------|-------------|
 | admin-frontend | 3002 | Admin panel UI |
 
 ### Data & Messaging (2)

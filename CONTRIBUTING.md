@@ -28,7 +28,7 @@ Thank you for your interest in contributing to the Care For All donation platfor
 bun run dev
 
 # Run specific service
-cd apps/campaign-service
+cd apps/backend/campaign-service
 bun run dev
 ```
 
@@ -66,7 +66,7 @@ test: add tests for pledge state machine
 bun run test
 
 # Run tests for specific package
-cd apps/campaign-service
+cd apps/backend/campaign-service
 bun test
 ```
 
@@ -77,7 +77,7 @@ bun test
 bun run build
 
 # Build specific package
-cd apps/campaign-service
+cd apps/backend/campaign-service
 bun run build
 ```
 
@@ -85,16 +85,18 @@ bun run build
 
 ```
 care-for-all-microservice/
-├── apps/                    # Microservices and frontend
-│   ├── gateway/            # API Gateway
-│   ├── auth-service/       # Authentication
-│   ├── campaign-service/   # Campaigns
-│   ├── pledge-service/     # Pledges
-│   ├── payment-service/    # Payments
-│   ├── totals-service/     # Totals
-│   ├── chat-service/       # Chat
-│   └── admin-frontend/     # Admin UI
-├── packages/               # Shared packages
+├── apps/
+│   ├── backend/           # Backend microservices
+│   │   ├── gateway/       # API Gateway
+│   │   ├── auth-service/  # Authentication
+│   │   ├── campaign-service/ # Campaigns
+│   │   ├── pledge-service/   # Pledges
+│   │   ├── payment-service/  # Payments
+│   │   ├── totals-service/   # Totals
+│   │   └── chat-service/     # Chat
+│   └── frontend/          # Frontend applications
+│       └── admin-frontend/   # Admin UI
+├── packages/              # Shared packages
 │   ├── shared-types/      # Common types
 │   ├── shared-config/     # Config loader
 │   ├── shared-logger/     # Logger

@@ -79,7 +79,7 @@ To run services locally without Docker:
 bun run dev
 
 # Or run specific service
-cd apps/gateway
+cd apps/backend/gateway
 bun run dev
 ```
 
@@ -117,14 +117,16 @@ chat-service:     http://chat-service:3000
 ```
 care-for-all-microservice/
 ├── apps/
-│   ├── gateway/              # API Gateway
-│   ├── auth-service/         # Authentication
-│   ├── campaign-service/     # Campaigns CRUD
-│   ├── pledge-service/       # Pledges state machine
-│   ├── payment-service/      # Payment processing
-│   ├── totals-service/       # Campaign totals
-│   ├── chat-service/         # Real-time chat
-│   └── admin-frontend/       # Admin UI
+│   ├── backend/              # Backend microservices
+│   │   ├── gateway/          # API Gateway
+│   │   ├── auth-service/     # Authentication
+│   │   ├── campaign-service/ # Campaigns CRUD
+│   │   ├── pledge-service/   # Pledges state machine
+│   │   ├── payment-service/  # Payment processing
+│   │   ├── totals-service/   # Campaign totals
+│   │   └── chat-service/     # Real-time chat
+│   └── frontend/             # Frontend applications
+│       └── admin-frontend/   # Admin UI
 ├── packages/
 │   ├── shared-types/         # Common types & schemas
 │   ├── shared-config/        # Config loader

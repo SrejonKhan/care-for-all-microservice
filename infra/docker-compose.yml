@@ -17,7 +17,7 @@ services:
   gateway:
     build:
       context: ..
-      dockerfile: apps/gateway/Dockerfile
+      dockerfile: apps/backend/gateway/Dockerfile
     container_name: gateway
     ports:
       - "8080:3000"
@@ -50,7 +50,7 @@ services:
   auth-service:
     build:
       context: ..
-      dockerfile: apps/auth-service/Dockerfile
+      dockerfile: apps/backend/auth-service/Dockerfile
     container_name: auth-service
     environment:
       - NODE_ENV=production
@@ -71,7 +71,7 @@ services:
   campaign-service:
     build:
       context: ..
-      dockerfile: apps/campaign-service/Dockerfile
+      dockerfile: apps/backend/campaign-service/Dockerfile
     container_name: campaign-service
     environment:
       - NODE_ENV=production
@@ -91,7 +91,7 @@ services:
   pledge-service:
     build:
       context: ..
-      dockerfile: apps/pledge-service/Dockerfile
+      dockerfile: apps/backend/pledge-service/Dockerfile
     container_name: pledge-service
     environment:
       - NODE_ENV=production
@@ -112,7 +112,7 @@ services:
   payment-service:
     build:
       context: ..
-      dockerfile: apps/payment-service/Dockerfile
+      dockerfile: apps/backend/payment-service/Dockerfile
     container_name: payment-service
     environment:
       - NODE_ENV=production
@@ -132,7 +132,7 @@ services:
   totals-service:
     build:
       context: ..
-      dockerfile: apps/totals-service/Dockerfile
+      dockerfile: apps/backend/totals-service/Dockerfile
     container_name: totals-service
     environment:
       - NODE_ENV=production
@@ -152,7 +152,7 @@ services:
   chat-service:
     build:
       context: ..
-      dockerfile: apps/chat-service/Dockerfile
+      dockerfile: apps/backend/chat-service/Dockerfile
     container_name: chat-service
     environment:
       - NODE_ENV=production
@@ -171,7 +171,7 @@ services:
 
   admin-frontend:
     build:
-      context: ../apps/admin-frontend
+      context: ../apps/frontend/admin-frontend
       dockerfile: Dockerfile
     container_name: admin-frontend
     ports:

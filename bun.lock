@@ -9,22 +9,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/admin-frontend": {
-      "name": "@care-for-all/admin-frontend",
-      "version": "1.0.0",
-      "dependencies": {
-        "react": "^18.3.1",
-        "react-dom": "^18.3.1",
-      },
-      "devDependencies": {
-        "@types/react": "^18.3.18",
-        "@types/react-dom": "^18.3.5",
-        "@vitejs/plugin-react": "^4.3.4",
-        "typescript": "^5.7.2",
-        "vite": "^6.0.5",
-      },
-    },
-    "apps/auth-service": {
+    "apps/backend/auth-service": {
       "name": "@care-for-all/auth-service",
       "version": "1.0.0",
       "dependencies": {
@@ -42,7 +27,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/campaign-service": {
+    "apps/backend/campaign-service": {
       "name": "@care-for-all/campaign-service",
       "version": "1.0.0",
       "dependencies": {
@@ -61,7 +46,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/chat-service": {
+    "apps/backend/chat-service": {
       "name": "@care-for-all/chat-service",
       "version": "1.0.0",
       "dependencies": {
@@ -80,7 +65,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/gateway": {
+    "apps/backend/gateway": {
       "name": "@care-for-all/gateway",
       "version": "1.0.0",
       "dependencies": {
@@ -98,7 +83,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/payment-service": {
+    "apps/backend/payment-service": {
       "name": "@care-for-all/payment-service",
       "version": "1.0.0",
       "dependencies": {
@@ -117,7 +102,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/pledge-service": {
+    "apps/backend/pledge-service": {
       "name": "@care-for-all/pledge-service",
       "version": "1.0.0",
       "dependencies": {
@@ -136,7 +121,7 @@
         "typescript": "^5.7.2",
       },
     },
-    "apps/totals-service": {
+    "apps/backend/totals-service": {
       "name": "@care-for-all/totals-service",
       "version": "1.0.0",
       "dependencies": {
@@ -153,6 +138,21 @@
       "devDependencies": {
         "bun-types": "^1.1.38",
         "typescript": "^5.7.2",
+      },
+    },
+    "apps/frontend/admin-frontend": {
+      "name": "@care-for-all/admin-frontend",
+      "version": "1.0.0",
+      "dependencies": {
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+      },
+      "devDependencies": {
+        "@types/react": "^18.3.18",
+        "@types/react-dom": "^18.3.5",
+        "@vitejs/plugin-react": "^4.3.4",
+        "typescript": "^5.7.2",
+        "vite": "^6.0.5",
       },
     },
     "packages/shared-config": {
@@ -248,19 +248,19 @@
 
     "@babel/types": ["@babel/types@7.28.5", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA=="],
 
-    "@care-for-all/admin-frontend": ["@care-for-all/admin-frontend@workspace:apps/admin-frontend"],
+    "@care-for-all/admin-frontend": ["@care-for-all/admin-frontend@workspace:apps/frontend/admin-frontend"],
 
-    "@care-for-all/auth-service": ["@care-for-all/auth-service@workspace:apps/auth-service"],
+    "@care-for-all/auth-service": ["@care-for-all/auth-service@workspace:apps/backend/auth-service"],
 
-    "@care-for-all/campaign-service": ["@care-for-all/campaign-service@workspace:apps/campaign-service"],
+    "@care-for-all/campaign-service": ["@care-for-all/campaign-service@workspace:apps/backend/campaign-service"],
 
-    "@care-for-all/chat-service": ["@care-for-all/chat-service@workspace:apps/chat-service"],
+    "@care-for-all/chat-service": ["@care-for-all/chat-service@workspace:apps/backend/chat-service"],
 
-    "@care-for-all/gateway": ["@care-for-all/gateway@workspace:apps/gateway"],
+    "@care-for-all/gateway": ["@care-for-all/gateway@workspace:apps/backend/gateway"],
 
-    "@care-for-all/payment-service": ["@care-for-all/payment-service@workspace:apps/payment-service"],
+    "@care-for-all/payment-service": ["@care-for-all/payment-service@workspace:apps/backend/payment-service"],
 
-    "@care-for-all/pledge-service": ["@care-for-all/pledge-service@workspace:apps/pledge-service"],
+    "@care-for-all/pledge-service": ["@care-for-all/pledge-service@workspace:apps/backend/pledge-service"],
 
     "@care-for-all/shared-config": ["@care-for-all/shared-config@workspace:packages/shared-config"],
 
@@ -272,7 +272,7 @@
 
     "@care-for-all/shared-types": ["@care-for-all/shared-types@workspace:packages/shared-types"],
 
-    "@care-for-all/totals-service": ["@care-for-all/totals-service@workspace:apps/totals-service"],
+    "@care-for-all/totals-service": ["@care-for-all/totals-service@workspace:apps/backend/totals-service"],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 
